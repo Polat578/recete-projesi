@@ -186,21 +186,6 @@ def complete_order(order_id):
     conn.commit()
     conn.close()
     return jsonify({"message": "Üretim tamamlandı, stoklar güncellendi."})
-    @app.route('/recipes', methods=['GET'])
-def list_recipes():
-    conn = sqlite3.connect(DB_NAME)
-    c = conn.cursor()
-    c.execute('''
-        SELECT DISTINCT r.product_id, p.name
-        FROM recipes r
-        JOIN products p ON r.product_id = p.id
-    ''')
-    rows = c.fetchall()
-    conn.close()
-    return jsonify([
-        {"id": row[0], "name": row[1]} for row in rows
-    ])
-
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
