@@ -35,11 +35,11 @@ def init_db():
 
 init_db()
 
-@app.route("/")
+@app.route('/')
 def index():
-    return render_template("index.html")
+    return render_template('index.html')
 
-@app.route("/materials", methods=["GET"])
+@app.route('/materials', methods=['GET'])
 def get_materials():
     conn = sqlite3.connect(DB_NAME)
     c = conn.cursor()
@@ -56,25 +56,21 @@ def get_materials():
             "type": row[5],
             "warehouse": row[6],
             "stock_code": row[7]
-        }
-        for row in rows
+        } for row in rows
     ])
 
-@app.route("/materials", methods=["POST"])
+@app.route('/materials', methods=['POST'])
 def add_material():
     data = request.get_json()
-    if not data:
-        return jsonify({"error": "Eksik veri"}), 400
-
     conn = sqlite3.connect(DB_NAME)
     c = conn.cursor()
-    c.execute("""
+    c.execute('''
         INSERT INTO materials (name, unit, stock_amount, cycle_time, type, warehouse, stock_code)
         VALUES (?, ?, ?, ?, ?, ?, ?)
-    """, (
+    ''', (
         data.get("name"),
         data.get("unit"),
-        data.get("stock_amount"),
+        data.get("stock_amount", 0),
         data.get("cycle_time"),
         data.get("type"),
         data.get("warehouse"),
@@ -82,9 +78,9 @@ def add_material():
     ))
     conn.commit()
     conn.close()
-    return jsonify({"message": "Malzeme başarıyla eklendi"})
+    return jsonify({"message": "Malzeme eklendi"})
 
-@app.route("/warehouses", methods=["GET"])
+@app.route('/warehouses', methods=['GET'])
 def get_warehouses():
     conn = sqlite3.connect(DB_NAME)
     c = conn.cursor()
@@ -93,18 +89,15 @@ def get_warehouses():
     conn.close()
     return jsonify([{"id": row[0], "name": row[1]} for row in rows])
 
-@app.route("/warehouses", methods=["POST"])
+@app.route('/warehouses', methods=['POST'])
 def add_warehouse():
     data = request.get_json()
-    if not data or "name" not in data:
-        return jsonify({"error": "Ambar adı gerekli"}), 400
-
     conn = sqlite3.connect(DB_NAME)
     c = conn.cursor()
     c.execute("INSERT INTO warehouses (name) VALUES (?)", (data["name"],))
     conn.commit()
     conn.close()
-    return jsonify({"message": "Ambar başarıyla eklendi"})
+    return jsonify({"message": "Ambar eklendi"})
 
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=True)
+if __name__ == '__main__':
+    app.run(debug=True)
