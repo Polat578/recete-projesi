@@ -1,3 +1,5 @@
+import os
+print("🧪 DATABASE_URL:", os.environ.get("DATABASE_URL"))
 from flask import Flask, jsonify, render_template
 import psycopg2
 import os
