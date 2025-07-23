@@ -1,178 +1,126 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-  <meta charset="UTF-8">
-  <title>Üretim Takip Sistemi</title>
-  <link rel="stylesheet" href="/static/style.css">
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 0;
-      padding: 0;
-      background: #f2f2f2;
-    }
-
-    header {
-      background-color: #3b82f6;
-      color: white;
-      padding: 20px;
-      text-align: center;
-      position: relative;
-    }
-
-    #back-button {
-      position: absolute;
-      top: 20px;
-      left: 20px;
-      background: white;
-      color: #3b82f6;
-      border: 1px solid #3b82f6;
-      padding: 5px 12px;
-      border-radius: 6px;
-      cursor: pointer;
-      font-weight: bold;
-    }
-
-    .hidden {
-      display: none;
-    }
-
-    .dashboard {
-      display: flex;
-      justify-content: center;
-      gap: 20px;
-      padding: 20px;
-    }
-
-    .widget {
-      background: white;
-      padding: 40px;
-      border-radius: 12px;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-      cursor: pointer;
-      font-size: 1.2rem;
-      text-align: center;
-      transition: transform 0.2s ease;
-    }
-
-    .widget:hover {
-      transform: scale(1.05);
-    }
-
-    #content-area {
-      margin: 20px auto;
-      width: 90%;
-      background: white;
-      padding: 20px;
-      border-radius: 8px;
-      min-height: 300px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.05);
-    }
-
-    .material-item {
-      border-bottom: 1px solid #ccc;
-      padding: 10px 0;
-    }
-
-    ul {
-      padding-left: 20px;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <title>Üretim Takip Sistemi</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: #f2f2f2;
+        }
+        header {
+            background-color: #3b82f6;
+            color: white;
+            padding: 20px;
+            text-align: center;
+            position: relative;
+        }
+        #back-button {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: white;
+            color: #3b82f6;
+            border: 1px solid #3b82f6;
+            padding: 5px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .hidden {
+            display: none;
+        }
+        .dashboard {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            padding: 20px;
+        }
+        .widget {
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            cursor: pointer;
+            font-size: 1.2rem;
+            text-align: center;
+            transition: transform 0.2s ease;
+        }
+        .widget:hover {
+            transform: scale(1.05);
+        }
+        #content-area {
+            margin: 20px auto;
+            width: 90%;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            min-height: 300px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.05);
+        }
+        .context-menu {
+            position: absolute;
+            background: white;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            list-style: none;
+            padding: 5px 0;
+            margin: 0;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+            z-index: 999;
+        }
+        .context-menu li {
+            padding: 8px 16px;
+            cursor: pointer;
+        }
+        .context-menu li:hover {
+            background-color: #f0f0f0;
+        }
+        .material-item {
+            border-bottom: 1px solid #ccc;
+            padding: 10px 0;
+        }
+    </style>
 </head>
 <body>
+    <header>
+        <button id="back-button" onclick="goBack()" class="hidden">⬅ Geri</button>
+        <h1>Üretim Takip Paneli</h1>
+    </header>
 
-  <header>
-    <h1>Üretim Takip Sistemi</h1>
-  </header>
+    <main>
+        <div class="dashboard" id="widget-container">
+            <div class="widget" onclick="loadSection('materials')">📦 Malzemelerim</div>
+            <div class="widget" onclick="loadSection('recipes')">📋 Reçetelerim</div>
+            <div class="widget" onclick="loadSection('orders')">🏭 Üretim Emirlerim</div>
+            <div class="widget" onclick="loadSection('warehouses')">🏢 Ambarlar</div>
+        </div>
 
-  <div class="dashboard">
-    <div class="widget" onclick="showContent('materials')">Malzemeler</div>
-    <div class="widget" onclick="showContent('products')">Ürünler</div>
-    <div class="widget" onclick="showContent('orders')">Siparişler</div>
-    <div class="widget" onclick="showContent('warehouses')">Ambarlar</div>
-  </div>
+        <section id="content-area">
+            <!-- İçerik buraya dinamik yüklenecek -->
+        </section>
+    </main>
 
-  <div id="content-area">
-    <section id="materials" class="hidden">
-      <h2>Malzemeler</h2>
-      <!-- İçerik buraya eklenecek -->
-    </section>
-
-    <section id="products" class="hidden">
-      <h2>Ürünler</h2>
-      <!-- İçerik buraya eklenecek -->
-    </section>
-
-    <section id="orders" class="hidden">
-      <h2>Siparişler</h2>
-      <!-- İçerik buraya eklenecek -->
-    </section>
-
-    <section id="warehouses" class="hidden">
-      <h2>Ambar Ekle</h2>
-      <form id="warehouseForm">
-        <input type="text" id="warehouseName" placeholder="Ambar Adı" required>
-        <button type="submit">Ekle</button>
-      </form>
-      <p id="result"></p>
-
-      <h3>Mevcut Ambarlar</h3>
-      <ul id="warehouseList"></ul>
-    </section>
-  </div>
-
-  <script>
-    function showContent(sectionId) {
-      const sections = document.querySelectorAll("#content-area > section");
-      sections.forEach(section => {
-        section.classList.add("hidden");
-      });
-      document.getElementById(sectionId).classList.remove("hidden");
-    }
-
-    async function loadWarehouses() {
-      try {
-        const res = await fetch('/warehouses');
-        const data = await res.json();
-        const list = document.getElementById('warehouseList');
-        list.innerHTML = '';
-        data.forEach(w => {
-          const li = document.createElement('li');
-          li.textContent = w.name;
-          list.appendChild(li);
-        });
-      } catch (err) {
-        console.error("Ambarları yüklerken hata:", err);
-      }
-    }
-
-    document.getElementById('warehouseForm').addEventListener('submit', async function (e) {
-      e.preventDefault();
-
-      const name = document.getElementById('warehouseName').value.trim();
-      if (!name) return;
-
-      try {
-        const res = await fetch('/warehouses', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name })
-        });
-
-        const result = await res.json();
-        document.getElementById('result').innerText = res.ok ? result.message : result.error || 'Hata';
-        if (res.ok) {
-          document.getElementById('warehouseName').value = '';
-          loadWarehouses();
+    <script>
+        function goBack() {
+            document.getElementById('content-area').innerHTML = '';
+            document.getElementById('widget-container').classList.remove('hidden');
+            document.getElementById('back-button').classList.add('hidden');
         }
-      } catch (err) {
-        console.error("Ambar ekleme hatası:", err);
-      }
-    });
 
-    // Sayfa açıldığında ambarları yükle
-    loadWarehouses();
-  </script>
+        function loadSection(section) {
+            document.getElementById('widget-container').classList.add('hidden');
+            document.getElementById('back-button').classList.remove('hidden');
 
+            fetch('/static/' + section + '.html')
+                .then(res => res.text())
+                .then(html => {
+                    document.getElementById('content-area').innerHTML = html;
+                });
+        }
+    </script>
 </body>
 </html>
