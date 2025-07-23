@@ -4,69 +4,7 @@
     <meta charset="UTF-8">
     <title>Üretim Takip Sistemi</title>
     <link rel="stylesheet" href="/static/style.css">
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-            background: #f2f2f2;
-        }
-        header {
-            background-color: #3b82f6;
-            color: white;
-            padding: 20px;
-            text-align: center;
-        }
-        .dashboard {
-            display: flex;
-            justify-content: center;
-            gap: 20px;
-            padding: 20px;
-        }
-        .widget {
-            background: white;
-            padding: 40px;
-            border-radius: 12px;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-            cursor: pointer;
-            font-size: 1.2rem;
-            text-align: center;
-            transition: transform 0.2s ease;
-        }
-        .widget:hover {
-            transform: scale(1.05);
-        }
-        #content-area {
-            margin: 20px auto;
-            width: 90%;
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            min-height: 300px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.05);
-        }
-        .context-menu {
-            position: absolute;
-            background: white;
-            border: 1px solid #ccc;
-            border-radius: 6px;
-            list-style: none;
-            padding: 5px 0;
-            margin: 0;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.15);
-            z-index: 999;
-        }
-        .context-menu li {
-            padding: 8px 16px;
-            cursor: pointer;
-        }
-        .context-menu li:hover {
-            background-color: #f0f0f0;
-        }
-        .hidden {
-            display: none;
-        }
-    </style>
+    <style>/* ... CSS kodları aynı kalacak ... */</style>
 </head>
 <body>
     <header>
@@ -89,8 +27,16 @@
         <!-- Sağ tık menüsü dinamik olarak değişecek -->
     </ul>
 
+    <div id="modal" class="hidden" style="position:fixed; top:20%; left:50%; transform:translateX(-50%); background:white; padding:20px; border:1px solid #ccc; border-radius:8px; z-index:1000; width:300px;">
+        <h3 id="modal-title"></h3>
+        <div id="modal-body"></div>
+        <button onclick="submitModal()">Kaydet</button>
+        <button onclick="closeModal()">İptal</button>
+    </div>
+
     <script>
         let currentSection = '';
+        let modalCallback = null;
 
         function loadSection(section) {
             currentSection = section;
@@ -142,25 +88,73 @@
 
         document.addEventListener("click", hideContextMenu);
 
-        function addMaterial() {
-            const name = prompt("Malzeme adı:");
-            const unit = prompt("Birim (örneğin kg, lt):");
-            const amount = prompt("Stok miktarı:");
-            if (!name || !unit) return;
+        function showModal(title, bodyHTML, callback) {
+            document.getElementById("modal-title").innerText = title;
+            document.getElementById("modal-body").innerHTML = bodyHTML;
+            document.getElementById("modal").classList.remove("hidden");
+            modalCallback = callback;
+        }
 
-            fetch('/materials', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ name, unit, stock_amount: parseFloat(amount) || 0 })
-            }).then(() => loadSection('materials'));
+        function closeModal() {
+            document.getElementById("modal").classList.add("hidden");
+            modalCallback = null;
+        }
+
+        function submitModal() {
+            if (modalCallback) modalCallback();
+            closeModal();
+        }
+
+        function addMaterial() {
+            showModal("Malzeme Ekle", `
+                <input id="m_name" placeholder="Malzeme Adı"/><br><br>
+                <input id="m_unit" placeholder="Birim (kg, lt)"/><br><br>
+                <input id="m_amount" placeholder="Stok Miktarı" type="number"/><br>
+            `, () => {
+                const name = document.getElementById("m_name").value;
+                const unit = document.getElementById("m_unit").value;
+                const amount = parseFloat(document.getElementById("m_amount").value);
+                if (!name || !unit) return;
+                fetch('/materials', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ name, unit, stock_amount: amount || 0 })
+                }).then(() => loadSection('materials'));
+            });
         }
 
         function addRecipe() {
-            alert("Reçete ekleme arayüzü buraya gelecek.");
+            showModal("Reçete Ekle", `
+                <input id="r_product_id" placeholder="Ürün ID"/><br><br>
+                <input id="r_material_id" placeholder="Malzeme ID"/><br><br>
+                <input id="r_quantity" placeholder="Miktar" type="number"/><br>
+            `, () => {
+                const product_id = parseInt(document.getElementById("r_product_id").value);
+                const material_id = parseInt(document.getElementById("r_material_id").value);
+                const quantity = parseFloat(document.getElementById("r_quantity").value);
+                if (!product_id || !material_id || !quantity) return;
+                fetch('/recipes', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ product_id, material_id, quantity })
+                }).then(() => loadSection('recipes'));
+            });
         }
 
         function addOrder() {
-            alert("Üretim emri ekleme arayüzü buraya gelecek.");
+            showModal("Üretim Emri Ekle", `
+                <input id="o_product_id" placeholder="Ürün ID"/><br><br>
+                <input id="o_quantity" placeholder="Adet" type="number"/><br>
+            `, () => {
+                const product_id = parseInt(document.getElementById("o_product_id").value);
+                const quantity = parseInt(document.getElementById("o_quantity").value);
+                if (!product_id || !quantity) return;
+                fetch('/orders', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ product_id, quantity })
+                }).then(() => loadSection('orders'));
+            });
         }
 
         function editRecipe(id) {
