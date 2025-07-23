@@ -8,7 +8,7 @@ def init_db():
     conn = sqlite3.connect(DB_NAME)
     c = conn.cursor()
 
-    # Ambarlar tablosu
+    # Ambarlar
     c.execute('''
         CREATE TABLE IF NOT EXISTS warehouses (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -16,7 +16,7 @@ def init_db():
         )
     ''')
 
-    # Malzemeler tablosu
+    # Malzemeler
     c.execute('''
         CREATE TABLE IF NOT EXISTS materials (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -35,11 +35,11 @@ def init_db():
 
 init_db()
 
-@app.route('/')
+@app.route("/")
 def index():
     return render_template("index.html")
 
-@app.route('/materials', methods=['GET'])
+@app.route("/materials", methods=["GET"])
 def get_materials():
     conn = sqlite3.connect(DB_NAME)
     c = conn.cursor()
@@ -56,10 +56,11 @@ def get_materials():
             "type": row[5],
             "warehouse": row[6],
             "stock_code": row[7]
-        } for row in rows
+        }
+        for row in rows
     ])
 
-@app.route('/materials', methods=['POST'])
+@app.route("/materials", methods=["POST"])
 def add_material():
     data = request.get_json()
     if not data:
@@ -67,23 +68,23 @@ def add_material():
 
     conn = sqlite3.connect(DB_NAME)
     c = conn.cursor()
-    c.execute('''
+    c.execute("""
         INSERT INTO materials (name, unit, stock_amount, cycle_time, type, warehouse, stock_code)
         VALUES (?, ?, ?, ?, ?, ?, ?)
-    ''', (
-        data.get('name'),
-        data.get('unit'),
-        data.get('stock_amount'),
-        data.get('cycle_time'),
-        data.get('type'),
-        data.get('warehouse'),
-        data.get('stock_code')
+    """, (
+        data.get("name"),
+        data.get("unit"),
+        data.get("stock_amount"),
+        data.get("cycle_time"),
+        data.get("type"),
+        data.get("warehouse"),
+        data.get("stock_code")
     ))
     conn.commit()
     conn.close()
-    return jsonify({"message": "Malzeme eklendi"})
+    return jsonify({"message": "Malzeme başarıyla eklendi"})
 
-@app.route('/warehouses', methods=['GET'])
+@app.route("/warehouses", methods=["GET"])
 def get_warehouses():
     conn = sqlite3.connect(DB_NAME)
     c = conn.cursor()
@@ -92,7 +93,7 @@ def get_warehouses():
     conn.close()
     return jsonify([{"id": row[0], "name": row[1]} for row in rows])
 
-@app.route('/warehouses', methods=['POST'])
+@app.route("/warehouses", methods=["POST"])
 def add_warehouse():
     data = request.get_json()
     if not data or "name" not in data:
@@ -103,7 +104,7 @@ def add_warehouse():
     c.execute("INSERT INTO warehouses (name) VALUES (?)", (data["name"],))
     conn.commit()
     conn.close()
-    return jsonify({"message": "Ambar eklendi"})
+    return jsonify({"message": "Ambar başarıyla eklendi"})
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)
