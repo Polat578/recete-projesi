@@ -41,17 +41,31 @@
                 .then(res => res.json())
                 .then(data => {
                     if (!data.length) return;
-                    const recipe = data[0];
-                    showModal("Reçete Düzenle", `
-                        <input id="edit_quantity" type="number" value="${recipe.quantity}"/><br><br>
-                        <small>${recipe.material} (${recipe.unit})</small><br>
-                    `, () => {
-                        const quantity = parseFloat(document.getElementById("edit_quantity").value);
-                        if (!quantity) return;
-                        // Reçete güncelleme API'n yoksa, burada POST yapılmaz — sadece gösterim amaçlı.
-                        alert(`Reçete ID ${id} güncellendi: Yeni miktar = ` + quantity);
+                    const body = data.map((item, idx) => `
+                        <div>
+                            <strong>${item.material}</strong> (${item.unit}):<br>
+                            <input type="number" id="edit_q_${idx}" value="${item.quantity}"><br><br>
+                        </div>
+                    `).join('');
+                    showModal("Reçete Düzenle", body, () => {
+                        let values = [];
+                        data.forEach((item, idx) => {
+                            const val = parseFloat(document.getElementById(`edit_q_${idx}`).value);
+                            if (!isNaN(val)) {
+                                values.push({
+                                    material: item.material,
+                                    quantity: val,
+                                    unit: item.unit
+                                });
+                            }
+                        });
+                        console.log("Güncellenecek veriler:", values);
+                        alert("Güncellenecek reçete satırları gönderilebilir.");
                         loadSection('recipes');
                     });
+                })
+                .catch(err => {
+                    alert("Reçete verisi alınamadı: " + err);
                 });
         }
     </script>
