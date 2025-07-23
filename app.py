@@ -8,6 +8,7 @@ def init_db():
     conn = sqlite3.connect(DB_NAME)
     c = conn.cursor()
 
+    # Malzeme tablosu
     c.execute('''
         CREATE TABLE IF NOT EXISTS materials (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -21,6 +22,7 @@ def init_db():
         )
     ''')
 
+    # Ambar tablosu
     c.execute('''
         CREATE TABLE IF NOT EXISTS warehouses (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -37,8 +39,27 @@ init_db()
 def index():
     return render_template('index.html')
 
+@app.route('/materials', methods=['GET'])
+def get_materials():
+    conn = sqlite3.connect(DB_NAME)
+    c = conn.cursor()
+    c.execute("SELECT * FROM materials")
+    rows = c.fetchall()
+    conn.close()
+    return jsonify([
+        {
+            "id": row[0],
+            "name": row[1],
+            "unit": row[2],
+            "stock_amount": row[3],
+            "cycle_time": row[4],
+            "type": row[5],
+            "warehouse": row[6],
+            "stock_code": row[7]
+        }
+        for row in rows
+    ])
 
-# ✅ Malzeme Ekle
 @app.route('/materials', methods=['POST'])
 def add_material():
     data = request.json
@@ -48,16 +69,13 @@ def add_material():
         INSERT INTO materials (name, unit, stock_amount, cycle_time, type, warehouse, stock_code)
         VALUES (?, ?, ?, ?, ?, ?, ?)
     ''', (
-        data['name'], data['unit'], data['stock_amount'],
-        data.get('cycle_time', ''), data['type'],
-        data['warehouse'], data['stock_code']
+        data['name'], data['unit'], data.get('stock_amount', 0),
+        data.get('cycle_time'), data['type'], data['warehouse'], data['stock_code']
     ))
     conn.commit()
     conn.close()
-    return jsonify({"message": "Malzeme eklendi"})
+    return jsonify({"message": "Malzeme eklendi."})
 
-
-# ✅ Malzeme Güncelle
 @app.route('/materials/<int:material_id>', methods=['PUT'])
 def update_material(material_id):
     data = request.json
@@ -68,33 +86,22 @@ def update_material(material_id):
         SET name = ?, unit = ?, stock_amount = ?, cycle_time = ?, type = ?, warehouse = ?, stock_code = ?
         WHERE id = ?
     ''', (
-        data['name'], data['unit'], data['stock_amount'],
-        data.get('cycle_time', ''), data['type'],
-        data['warehouse'], data['stock_code'], material_id
+        data['name'], data['unit'], data.get('stock_amount', 0),
+        data.get('cycle_time'), data['type'], data['warehouse'], data['stock_code'], material_id
     ))
     conn.commit()
     conn.close()
-    return jsonify({"message": "Malzeme güncellendi"})
+    return jsonify({"message": "Malzeme güncellendi."})
 
-
-# ✅ Malzemeleri Listele
-@app.route('/materials', methods=['GET'])
-def get_materials():
+@app.route('/warehouses', methods=['GET'])
+def get_warehouses():
     conn = sqlite3.connect(DB_NAME)
     c = conn.cursor()
-    c.execute("SELECT * FROM materials")
+    c.execute("SELECT * FROM warehouses")
     rows = c.fetchall()
     conn.close()
-    return jsonify([
-        {
-            "id": row[0], "name": row[1], "unit": row[2], "stock_amount": row[3],
-            "cycle_time": row[4], "type": row[5], "warehouse": row[6], "stock_code": row[7]
-        }
-        for row in rows
-    ])
+    return jsonify([{"id": row[0], "name": row[1]} for row in rows])
 
-
-# ✅ Ambar Ekle
 @app.route('/warehouses', methods=['POST'])
 def add_warehouse():
     data = request.json
@@ -103,21 +110,7 @@ def add_warehouse():
     c.execute("INSERT INTO warehouses (name) VALUES (?)", (data['name'],))
     conn.commit()
     conn.close()
-    return jsonify({"message": "Ambar eklendi"})
-
-
-# ✅ Ambarları Listele
-@app.route('/warehouses', methods=['GET'])
-def list_warehouses():
-    conn = sqlite3.connect(DB_NAME)
-    c = conn.cursor()
-    c.execute("SELECT * FROM warehouses")
-    rows = c.fetchall()
-    conn.close()
-    return jsonify([{"id": row[0], "name": row[1]} for row in rows])
-
-
-# ✅ Geri kalan endpointler (isteğe göre eklenebilir)
+    return jsonify({"message": "Ambar eklendi."})
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    app.run(debug=True)
