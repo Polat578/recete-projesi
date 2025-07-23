@@ -1,17 +1,22 @@
 from flask import Flask, request, jsonify, render_template
 import sqlite3
-import os
 
-app = Flask(__name__)
-DB_NAME = 'database.db'
+app = Flask(__name__, static_url_path='/static')
+DB_NAME = "database.db"
 
 def init_db():
-    if os.path.exists(DB_NAME):
-        os.remove(DB_NAME)  # Veritabanını sıfırla
-
     conn = sqlite3.connect(DB_NAME)
     c = conn.cursor()
 
+    # Ambarlar
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS warehouses (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL
+        )
+    ''')
+
+    # Malzemeler
     c.execute('''
         CREATE TABLE IF NOT EXISTS materials (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -25,13 +30,6 @@ def init_db():
         )
     ''')
 
-    c.execute('''
-        CREATE TABLE IF NOT EXISTS warehouses (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL UNIQUE
-        )
-    ''')
-
     conn.commit()
     conn.close()
 
@@ -39,70 +37,77 @@ init_db()
 
 @app.route('/')
 def index():
-    return render_template("index.html")
+    return render_template('index.html')
+
+# === MALZEMELER ===
+@app.route('/materials', methods=['GET'])
+def get_materials():
+    conn = sqlite3.connect(DB_NAME)
+    c = conn.cursor()
+    c.execute("SELECT * FROM materials")
+    rows = c.fetchall()
+    conn.close()
+    return jsonify([
+        {
+            "id": row[0],
+            "name": row[1],
+            "unit": row[2],
+            "stock_amount": row[3],
+            "cycle_time": row[4],
+            "type": row[5],
+            "warehouse": row[6],
+            "stock_code": row[7]
+        } for row in rows
+    ])
 
 @app.route('/materials', methods=['POST'])
 def add_material():
     data = request.get_json()
+    required = ['name', 'unit', 'type', 'warehouse', 'stock_code']
+    for field in required:
+        if not data.get(field):
+            return jsonify({'error': f'{field} zorunlu'}), 400
+
     conn = sqlite3.connect(DB_NAME)
     c = conn.cursor()
     c.execute('''
         INSERT INTO materials (name, unit, stock_amount, cycle_time, type, warehouse, stock_code)
         VALUES (?, ?, ?, ?, ?, ?, ?)
     ''', (
-        data.get('name'),
-        data.get('unit'),
+        data['name'],
+        data['unit'],
         data.get('stock_amount', 0),
-        data.get('cycle_time'),
-        data.get('type'),
-        data.get('warehouse'),
-        data.get('stock_code')
+        data.get('cycle_time', ''),
+        data['type'],
+        data['warehouse'],
+        data['stock_code']
     ))
     conn.commit()
     conn.close()
     return jsonify({'message': 'Malzeme eklendi'})
 
-@app.route('/materials', methods=['GET'])
-def get_materials():
-    conn = sqlite3.connect(DB_NAME)
-    c = conn.cursor()
-    c.execute('''
-        SELECT name, unit, stock_amount, cycle_time, type, warehouse, stock_code
-        FROM materials
-    ''')
-    rows = c.fetchall()
-    conn.close()
-    return jsonify([
-        {
-            'name': row[0],
-            'unit': row[1],
-            'stock_amount': row[2],
-            'cycle_time': row[3],
-            'type': row[4],
-            'warehouse': row[5],
-            'stock_code': row[6]
-        }
-        for row in rows
-    ])
-
+# === AMBARLAR ===
 @app.route('/warehouses', methods=['GET'])
 def get_warehouses():
     conn = sqlite3.connect(DB_NAME)
     c = conn.cursor()
-    c.execute("SELECT name FROM warehouses")
+    c.execute("SELECT id, name FROM warehouses")
     rows = c.fetchall()
     conn.close()
-    return jsonify([{"name": row[0]} for row in rows])
+    return jsonify([{"id": row[0], "name": row[1]} for row in rows])
 
 @app.route('/warehouses', methods=['POST'])
 def add_warehouse():
     data = request.get_json()
+    name = data.get('name')
+    if not name:
+        return jsonify({'error': 'Ambar adı gerekli'}), 400
     conn = sqlite3.connect(DB_NAME)
     c = conn.cursor()
-    c.execute("INSERT OR IGNORE INTO warehouses (name) VALUES (?)", (data['name'],))
+    c.execute("INSERT INTO warehouses (name) VALUES (?)", (name,))
     conn.commit()
     conn.close()
-    return jsonify({"message": "Ambar eklendi"})
+    return jsonify({'message': 'Ambar eklendi'})
 
 if __name__ == '__main__':
     app.run(debug=True)
