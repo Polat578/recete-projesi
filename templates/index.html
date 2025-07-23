@@ -139,33 +139,29 @@
                 });
         }
 
-       <script>
-    function renderList(data) {
-        const area = document.getElementById("content-area");
-        if (!Array.isArray(data)) return;
+        function renderList(data) {
+            const area = document.getElementById("content-area");
+            if (!Array.isArray(data)) return;
 
-        area.innerHTML = data.map(item => {
-            if (currentSection === 'materials') {
-                return `
-                    <div style="padding: 10px 0; border-bottom: 1px solid #ddd;">
-                        <strong>${item.name}</strong> - ${item.stock_amount} ${item.unit}
-                    </div>`;
-            } else if (currentSection === 'recipes') {
-                return `
-                    <div onclick="editRecipe(${item.id})" 
-                         style="padding: 10px 0; border-bottom: 1px solid #ddd; cursor:pointer">
-                        <strong>${item.name || 'Reçete'} (#${item.id})</strong>
-                    </div>`;
-            } else if (currentSection === 'orders') {
-                return `
-                    <div style="padding: 10px 0; border-bottom: 1px solid #ddd;">
-                        <strong>${item.product}</strong> - ${item.quantity} adet (${item.status})
-                    </div>`;
-            }
-        }).join("");
-    }
-</script>
-
+            area.innerHTML = data.map(item => {
+                if (currentSection === 'materials') {
+                    return `
+                        <div style="padding: 10px 0; border-bottom: 1px solid #ddd;">
+                            <strong>${item.name}</strong> - ${item.stock_amount} ${item.unit}
+                        </div>`;
+                } else if (currentSection === 'recipes') {
+                    return `
+                        <div onclick="editRecipe(${item.id})" 
+                             style="padding: 10px 0; border-bottom: 1px solid #ddd; cursor:pointer">
+                            <strong>${item.name || 'Reçete'} (#${item.id})</strong>
+                        </div>`;
+                } else if (currentSection === 'orders') {
+                    return `
+                        <div style="padding: 10px 0; border-bottom: 1px solid #ddd;">
+                            <strong>${item.product}</strong> - ${item.quantity} adet (${item.status})
+                        </div>`;
+                }
+            }).join("");
         }
 
         function showContextMenu(event) {
