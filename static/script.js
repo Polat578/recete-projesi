@@ -1,66 +1,88 @@
-// script.js
-
-// Malzeme listesini yükler
-async function loadMaterials() {
-  try {
-    const res = await fetch('https://recete-backend.onrender.com/materials');
-    if (!res.ok) {
-      throw new Error(`HTTP hata: ${res.status}`);
-    }
-
-    const materials = await res.json();
-    const tbody = document.getElementById('materialsList');
-    const materialSelect = document.getElementById('materialSelect');
-    tbody.innerHTML = '';
-    materialSelect.innerHTML = '';
-
-    materials.forEach(m => {
-      const row = `<tr><td>${m.name}</td><td>${m.unit}</td><td>${m.stock_amount}</td></tr>`;
-      tbody.insertAdjacentHTML('beforeend', row);
-
-      const option = document.createElement('option');
-      option.value = m.id;
-      option.textContent = m.name;
-      materialSelect.appendChild(option);
-    });
-  } catch (err) {
-    console.error('Malzeme yüklenirken hata oluştu:', err);
-    alert('❌ Malzeme verisi alınamadı. Lütfen sunucunun çalıştığından ve "/materials" adresinin geçerli olduğundan emin olun.');
-  }
+function getWarehouses() {
+    fetch('https://recete-projesi.onrender.com/warehouses')
+        .then(response => response.json())
+        .then(data => {
+            const warehouseSelect = document.getElementById("warehouse");
+            warehouseSelect.innerHTML = "";
+            data.forEach(warehouse => {
+                const option = document.createElement("option");
+                option.value = warehouse.name;
+                option.text = warehouse.name;
+                warehouseSelect.appendChild(option);
+            });
+        });
 }
 
-// Ürün listesini yükler
-async function loadProducts() {
-  try {
-    const res = await fetch('/products');
-    if (!res.ok) {
-      throw new Error(`HTTP hata: ${res.status}`);
-    }
-
-    const products = await res.json();
-    const tbody = document.getElementById('productsList');
-    const productSelect = document.getElementById('productSelect');
-    const orderProductSelect = document.getElementById('orderProductSelect');
-    tbody.innerHTML = '';
-    productSelect.innerHTML = '';
-    orderProductSelect.innerHTML = '';
-
-    products.forEach(p => {
-      const row = `<tr><td>${p.name}</td><td>${p.unit}</td><td>${p.stock_amount}</td></tr>`;
-      tbody.insertAdjacentHTML('beforeend', row);
-
-      const option1 = document.createElement('option');
-      option1.value = p.id;
-      option1.textContent = p.name;
-      productSelect.appendChild(option1);
-
-      const option2 = document.createElement('option');
-      option2.value = p.id;
-      option2.textContent = p.name;
-      orderProductSelect.appendChild(option2);
+function addWarehouse() {
+    const name = document.getElementById("warehouseName").value;
+    fetch('https://recete-projesi.onrender.com/warehouses', {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ name })
+    })
+    .then(response => response.json())
+    .then(data => {
+        alert("Ambar eklendi!");
+        getWarehouses();
     });
-  } catch (err) {
-    console.error('Ürün yüklenirken hata oluştu:', err);
-    alert('❌ Ürün verisi alınamadı.');
-  }
 }
+
+function addMaterial() {
+    const name = document.getElementById("name").value;
+    const unit = document.getElementById("unit").value;
+    const stock_amount = document.getElementById("stock_amount").value;
+    const cycle_time = document.getElementById("cycle_time").value;
+    const type = document.getElementById("type").value;
+    const warehouse = document.getElementById("warehouse").value;
+    const stock_code = document.getElementById("stock_code").value;
+
+    fetch('https://recete-projesi.onrender.com/materials', {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+            name,
+            unit,
+            stock_amount,
+            cycle_time,
+            type,
+            warehouse,
+            stock_code
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        alert("Malzeme eklendi!");
+        loadMaterials();
+    });
+}
+
+function loadMaterials() {
+    fetch('https://recete-projesi.onrender.com/materials')
+        .then(response => response.json())
+        .then(data => {
+            const table = document.getElementById("materialTable");
+            table.innerHTML = "<tr><th>Ad</th><th>Birim</th><th>Stok</th><th>Çevrim Süresi</th><th>Tip</th><th>Ambar</th><th>Stok Kodu</th></tr>";
+            data.forEach(material => {
+                const row = document.createElement("tr");
+                row.innerHTML = `
+                    <td>${material.name}</td>
+                    <td>${material.unit}</td>
+                    <td>${material.stock_amount}</td>
+                    <td>${material.cycle_time}</td>
+                    <td>${material.type}</td>
+                    <td>${material.warehouse}</td>
+                    <td>${material.stock_code}</td>
+                `;
+                table.appendChild(row);
+            });
+        });
+}
+
+window.onload = function () {
+    getWarehouses();
+    loadMaterials();
+};
