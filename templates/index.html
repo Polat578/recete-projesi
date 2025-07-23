@@ -2,102 +2,39 @@
 <html lang="tr">
 <head>
   <meta charset="UTF-8">
-  <title>Ambar Yönetimi</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      padding: 20px;
-      background-color: #f9f9f9;
-    }
-
-    h1 {
-      color: #333;
-    }
-
-    input {
-      padding: 8px;
-      font-size: 16px;
-      margin-right: 10px;
-    }
-
-    button {
-      padding: 8px 16px;
-      font-size: 16px;
-      cursor: pointer;
-    }
-
-    ul {
-      margin-top: 20px;
-      list-style-type: none;
-      padding-left: 0;
-    }
-
-    li {
-      padding: 6px 0;
-      border-bottom: 1px solid #ccc;
-    }
-  </style>
+  <title>Ambar Ekle</title>
 </head>
 <body>
-
   <h1>Ambar Ekle</h1>
 
-  <input type="text" id="warehouseName" placeholder="Ambar Adı">
-  <button onclick="addWarehouse()">Ekle</button>
+  <form id="warehouseForm">
+    <label>Ambar Adı:</label>
+    <input type="text" id="warehouseName" name="name" required>
+    <button type="submit">Ekle</button>
+  </form>
 
-  <ul id="warehouseList"></ul>
+  <p id="result"></p>
 
   <script>
-    async function loadWarehouses() {
-      try {
-        const res = await fetch('/warehouses');
-        const data = await res.json();
-        const list = document.getElementById('warehouseList');
-        list.innerHTML = '';
-        data.forEach(w => {
-          const li = document.createElement('li');
-          li.textContent = w.name;
-          list.appendChild(li);
-        });
-      } catch (err) {
-        alert("Ambar listesi yüklenemedi.");
-        console.error(err);
-      }
-    }
+    document.getElementById('warehouseForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
 
-    async function addWarehouse() {
       const name = document.getElementById('warehouseName').value.trim();
-      if (!name) {
-        alert("İsim boş olamaz");
-        return;
-      }
+      if (!name) return alert("Boş isim gönderilemez!");
 
-      try {
-        const res = await fetch('/warehouses', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ name })
-        });
+      const res = await fetch('/warehouses', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ name })
+      });
 
-        const result = await res.json();
-        if (res.ok) {
-          alert(result.message);
-          document.getElementById('warehouseName').value = '';
-          loadWarehouses(); // yeniden yükle
-        } else {
-          alert(result.error || "Hata oluştu");
-        }
-      } catch (err) {
-        alert("Ambar eklenemedi.");
-        console.error(err);
-      }
-    }
-
-    // Sayfa açıldığında otomatik yükle
-    loadWarehouses();
+      const result = await res.json();
+      document.getElementById('result').innerText = res.ok
+        ? result.message
+        : result.error || "Hata oluştu.";
+    });
   </script>
-
 </body>
 </html>
