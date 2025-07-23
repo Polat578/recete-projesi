@@ -1,12 +1,17 @@
 from flask import Flask, request, jsonify, render_template
 import sqlite3
+import os
 
 app = Flask(__name__)
 DB_NAME = 'database.db'
 
 def init_db():
+    if os.path.exists(DB_NAME):
+        os.remove(DB_NAME)  # Veritabanını sıfırla
+
     conn = sqlite3.connect(DB_NAME)
     c = conn.cursor()
+
     c.execute('''
         CREATE TABLE IF NOT EXISTS materials (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -19,12 +24,14 @@ def init_db():
             stock_code TEXT
         )
     ''')
+
     c.execute('''
         CREATE TABLE IF NOT EXISTS warehouses (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT NOT NULL UNIQUE
         )
     ''')
+
     conn.commit()
     conn.close()
 
@@ -33,26 +40,6 @@ init_db()
 @app.route('/')
 def index():
     return render_template("index.html")
-
-@app.route('/materials', methods=['GET'])
-def get_materials():
-    conn = sqlite3.connect(DB_NAME)
-    c = conn.cursor()
-    c.execute("SELECT name, unit, stock_amount, cycle_time, type, warehouse, stock_code FROM materials")
-    rows = c.fetchall()
-    conn.close()
-    return jsonify([
-        {
-            "name": row[0],
-            "unit": row[1],
-            "stock_amount": row[2],
-            "cycle_time": row[3],
-            "type": row[4],
-            "warehouse": row[5],
-            "stock_code": row[6]
-        }
-        for row in rows
-    ])
 
 @app.route('/materials', methods=['POST'])
 def add_material():
@@ -73,7 +60,30 @@ def add_material():
     ))
     conn.commit()
     conn.close()
-    return jsonify({"message": "Malzeme eklendi."})
+    return jsonify({'message': 'Malzeme eklendi'})
+
+@app.route('/materials', methods=['GET'])
+def get_materials():
+    conn = sqlite3.connect(DB_NAME)
+    c = conn.cursor()
+    c.execute('''
+        SELECT name, unit, stock_amount, cycle_time, type, warehouse, stock_code
+        FROM materials
+    ''')
+    rows = c.fetchall()
+    conn.close()
+    return jsonify([
+        {
+            'name': row[0],
+            'unit': row[1],
+            'stock_amount': row[2],
+            'cycle_time': row[3],
+            'type': row[4],
+            'warehouse': row[5],
+            'stock_code': row[6]
+        }
+        for row in rows
+    ])
 
 @app.route('/warehouses', methods=['GET'])
 def get_warehouses():
@@ -92,7 +102,7 @@ def add_warehouse():
     c.execute("INSERT OR IGNORE INTO warehouses (name) VALUES (?)", (data['name'],))
     conn.commit()
     conn.close()
-    return jsonify({"message": "Ambar eklendi."})
+    return jsonify({"message": "Ambar eklendi"})
 
 if __name__ == '__main__':
     app.run(debug=True)
