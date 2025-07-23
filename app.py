@@ -1,14 +1,14 @@
 from flask import Flask, request, jsonify, render_template
 import sqlite3
 
-app = Flask(__name__, static_url_path='/static')
+app = Flask(__name__, static_url_path="/static")
 DB_NAME = "database.db"
 
 def init_db():
     conn = sqlite3.connect(DB_NAME)
     c = conn.cursor()
 
-    # Ambarlar
+    # Ambarlar tablosu
     c.execute('''
         CREATE TABLE IF NOT EXISTS warehouses (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -16,7 +16,7 @@ def init_db():
         )
     ''')
 
-    # Malzemeler (Yeni alanlarla)
+    # Malzemeler tablosu
     c.execute('''
         CREATE TABLE IF NOT EXISTS materials (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -61,7 +61,10 @@ def get_materials():
 
 @app.route('/materials', methods=['POST'])
 def add_material():
-    data = request.json
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "Eksik veri"}), 400
+
     conn = sqlite3.connect(DB_NAME)
     c = conn.cursor()
     c.execute('''
@@ -87,14 +90,17 @@ def get_warehouses():
     c.execute("SELECT * FROM warehouses")
     rows = c.fetchall()
     conn.close()
-    return jsonify([{ "id": row[0], "name": row[1] } for row in rows])
+    return jsonify([{"id": row[0], "name": row[1]} for row in rows])
 
 @app.route('/warehouses', methods=['POST'])
 def add_warehouse():
-    data = request.json
+    data = request.get_json()
+    if not data or "name" not in data:
+        return jsonify({"error": "Ambar adı gerekli"}), 400
+
     conn = sqlite3.connect(DB_NAME)
     c = conn.cursor()
-    c.execute("INSERT INTO warehouses (name) VALUES (?)", (data.get("name"),))
+    c.execute("INSERT INTO warehouses (name) VALUES (?)", (data["name"],))
     conn.commit()
     conn.close()
     return jsonify({"message": "Ambar eklendi"})
