@@ -1,0 +1,38 @@
+<h2>📦 Malzeme Listesi</h2>
+<table border="1" cellpadding="8" cellspacing="0">
+  <thead>
+    <tr>
+      <th>Ad</th>
+      <th>Birim</th>
+      <th>Stok</th>
+      <th>Çevrim</th>
+      <th>Cins</th>
+      <th>Ambar</th>
+      <th>Stok Kodu</th>
+    </tr>
+  </thead>
+  <tbody id="materials-table-body">
+  </tbody>
+</table>
+
+<script>
+fetch('/materials')
+  .then(res => res.json())
+  .then(data => {
+    const tbody = document.getElementById("materials-table-body");
+    tbody.innerHTML = "";
+    data.forEach(m => {
+      const row = document.createElement("tr");
+      row.innerHTML = `
+        <td>${m.name}</td>
+        <td>${m.unit}</td>
+        <td>${m.stock_amount}</td>
+        <td>${m.cycle_time}</td>
+        <td>${m.type}</td>
+        <td>${m.warehouse}</td>
+        <td>${m.stock_code}</td>
+      `;
+      tbody.appendChild(row);
+    });
+  });
+</script>
