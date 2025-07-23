@@ -1,0 +1,16 @@
+<h2>🏢 Ambar Listesi</h2>
+<ul id="warehouse-list"></ul>
+
+<script>
+fetch('/warehouses')
+  .then(res => res.json())
+  .then(data => {
+    const ul = document.getElementById("warehouse-list");
+    ul.innerHTML = "";
+    data.forEach(w => {
+      const li = document.createElement("li");
+      li.textContent = w.name;
+      ul.appendChild(li);
+    });
+  });
+</script>
