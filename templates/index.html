@@ -4,6 +4,69 @@
     <meta charset="UTF-8">
     <title>Üretim Takip Sistemi</title>
     <link rel="stylesheet" href="/static/style.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: #f2f2f2;
+        }
+        header {
+            background-color: #3b82f6;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        .dashboard {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            padding: 20px;
+        }
+        .widget {
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            cursor: pointer;
+            font-size: 1.2rem;
+            text-align: center;
+            transition: transform 0.2s ease;
+        }
+        .widget:hover {
+            transform: scale(1.05);
+        }
+        #content-area {
+            margin: 20px auto;
+            width: 90%;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            min-height: 300px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.05);
+        }
+        .context-menu {
+            position: absolute;
+            background: white;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            list-style: none;
+            padding: 5px 0;
+            margin: 0;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+            z-index: 999;
+        }
+        .context-menu li {
+            padding: 8px 16px;
+            cursor: pointer;
+        }
+        .context-menu li:hover {
+            background-color: #f0f0f0;
+        }
+        .hidden {
+            display: none;
+        }
+    </style>
 </head>
 <body>
     <header>
@@ -26,6 +89,83 @@
         <!-- Sağ tık menüsü dinamik olarak değişecek -->
     </ul>
 
-    <script src="/static/script.js"></script>
+    <script>
+        let currentSection = '';
+
+        function loadSection(section) {
+            currentSection = section;
+            hideContextMenu();
+            fetch(`/${section}`)
+                .then(res => res.json())
+                .then(data => renderList(data))
+                .catch(err => {
+                    document.getElementById("content-area").innerHTML = `<p style="color:red">Hata oluştu: ${err}</p>`;
+                });
+        }
+
+        function renderList(data) {
+            const area = document.getElementById("content-area");
+            if (!Array.isArray(data)) return;
+            area.innerHTML = data.map(item => {
+                if (currentSection === 'materials') {
+                    return `<div><strong>${item.name}</strong> - ${item.stock_amount} ${item.unit}</div>`;
+                } else if (currentSection === 'recipes') {
+                    return `<div onclick="editRecipe(${item.id})" style="cursor:pointer"><strong>${item.name || 'Reçete'} (#${item.id})</strong></div>`;
+                } else if (currentSection === 'orders') {
+                    return `<div><strong>${item.product}</strong> - ${item.quantity} adet (${item.status})</div>`;
+                }
+            }).join("");
+        }
+
+        function showContextMenu(event) {
+            event.preventDefault();
+            const menu = document.getElementById("context-menu");
+            menu.innerHTML = '';
+
+            if (currentSection === 'materials') {
+                menu.innerHTML = '<li onclick="addMaterial()">Malzeme Ekle</li>';
+            } else if (currentSection === 'recipes') {
+                menu.innerHTML = '<li onclick="addRecipe()">Reçete Ekle</li>';
+            } else if (currentSection === 'orders') {
+                menu.innerHTML = '<li onclick="addOrder()">Üretim Emri Ekle</li>';
+            }
+
+            menu.classList.remove("hidden");
+            menu.style.top = `${event.pageY}px`;
+            menu.style.left = `${event.pageX}px`;
+            return false;
+        }
+
+        function hideContextMenu() {
+            document.getElementById("context-menu").classList.add("hidden");
+        }
+
+        document.addEventListener("click", hideContextMenu);
+
+        function addMaterial() {
+            const name = prompt("Malzeme adı:");
+            const unit = prompt("Birim (örneğin kg, lt):");
+            const amount = prompt("Stok miktarı:");
+            if (!name || !unit) return;
+
+            fetch('/materials', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ name, unit, stock_amount: parseFloat(amount) || 0 })
+            }).then(() => loadSection('materials'));
+        }
+
+        function addRecipe() {
+            alert("Reçete ekleme arayüzü buraya gelecek.");
+        }
+
+        function addOrder() {
+            alert("Üretim emri ekleme arayüzü buraya gelecek.");
+        }
+
+        function editRecipe(id) {
+            alert(`Reçete düzenleme: ID ${id}`);
+        }
+    </script>
 </body>
 </html>
