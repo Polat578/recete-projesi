@@ -35,7 +35,128 @@
     </div>
 
     <script>
-        // GÜNCELLENEN: editRecipe fonksiyonu modal ile reçete düzenlemesi yapar
+        let currentSection = '';
+        let modalCallback = null;
+
+        function loadSection(section) {
+            currentSection = section;
+            hideContextMenu();
+            fetch(`/${section}`)
+                .then(res => res.json())
+                .then(data => renderList(data))
+                .catch(err => {
+                    document.getElementById("content-area").innerHTML = `<p style="color:red">Hata oluştu: ${err}</p>`;
+                });
+        }
+
+        function renderList(data) {
+            const area = document.getElementById("content-area");
+            if (!Array.isArray(data)) return;
+            area.innerHTML = data.map(item => {
+                if (currentSection === 'materials') {
+                    return `<div><strong>${item.name}</strong> - ${item.stock_amount} ${item.unit}</div>`;
+                } else if (currentSection === 'recipes') {
+                    return `<div onclick="editRecipe(${item.id})" style="cursor:pointer"><strong>${item.name || 'Reçete'} (#${item.id})</strong></div>`;
+                } else if (currentSection === 'orders') {
+                    return `<div><strong>${item.product}</strong> - ${item.quantity} adet (${item.status})</div>`;
+                }
+            }).join("");
+        }
+
+        function showContextMenu(event) {
+            event.preventDefault();
+            const menu = document.getElementById("context-menu");
+            menu.innerHTML = '';
+
+            if (currentSection === 'materials') {
+                menu.innerHTML = '<li onclick="addMaterial()">Malzeme Ekle</li>';
+            } else if (currentSection === 'recipes') {
+                menu.innerHTML = '<li onclick="addRecipe()">Reçete Ekle</li>';
+            } else if (currentSection === 'orders') {
+                menu.innerHTML = '<li onclick="addOrder()">Üretim Emri Ekle</li>';
+            }
+
+            menu.classList.remove("hidden");
+            menu.style.top = `${event.pageY}px`;
+            menu.style.left = `${event.pageX}px`;
+            return false;
+        }
+
+        function hideContextMenu() {
+            document.getElementById("context-menu").classList.add("hidden");
+        }
+
+        document.addEventListener("click", hideContextMenu);
+
+        function showModal(title, bodyHTML, callback) {
+            document.getElementById("modal-title").innerText = title;
+            document.getElementById("modal-body").innerHTML = bodyHTML;
+            document.getElementById("modal").classList.remove("hidden");
+            modalCallback = callback;
+        }
+
+        function closeModal() {
+            document.getElementById("modal").classList.add("hidden");
+            modalCallback = null;
+        }
+
+        function submitModal() {
+            if (modalCallback) modalCallback();
+            closeModal();
+        }
+
+        function addMaterial() {
+            showModal("Malzeme Ekle", `
+                <input id="m_name" placeholder="Malzeme Adı"/><br><br>
+                <input id="m_unit" placeholder="Birim (kg, lt)"/><br><br>
+                <input id="m_amount" placeholder="Stok Miktarı" type="number"/><br>
+            `, () => {
+                const name = document.getElementById("m_name").value;
+                const unit = document.getElementById("m_unit").value;
+                const amount = parseFloat(document.getElementById("m_amount").value);
+                if (!name || !unit) return;
+                fetch('/materials', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ name, unit, stock_amount: amount || 0 })
+                }).then(() => loadSection('materials'));
+            });
+        }
+
+        function addRecipe() {
+            showModal("Reçete Ekle", `
+                <input id="r_product_id" placeholder="Ürün ID"/><br><br>
+                <input id="r_material_id" placeholder="Malzeme ID"/><br><br>
+                <input id="r_quantity" placeholder="Miktar" type="number"/><br>
+            `, () => {
+                const product_id = parseInt(document.getElementById("r_product_id").value);
+                const material_id = parseInt(document.getElementById("r_material_id").value);
+                const quantity = parseFloat(document.getElementById("r_quantity").value);
+                if (!product_id || !material_id || !quantity) return;
+                fetch('/recipes', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ product_id, material_id, quantity })
+                }).then(() => loadSection('recipes'));
+            });
+        }
+
+        function addOrder() {
+            showModal("Üretim Emri Ekle", `
+                <input id="o_product_id" placeholder="Ürün ID"/><br><br>
+                <input id="o_quantity" placeholder="Adet" type="number"/><br>
+            `, () => {
+                const product_id = parseInt(document.getElementById("o_product_id").value);
+                const quantity = parseInt(document.getElementById("o_quantity").value);
+                if (!product_id || !quantity) return;
+                fetch('/orders', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ product_id, quantity })
+                }).then(() => loadSection('orders'));
+            });
+        }
+
         function editRecipe(id) {
             fetch(`/recipes/${id}`)
                 .then(res => res.json())
