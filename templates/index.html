@@ -1,189 +1,248 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-  <meta charset="UTF-8">
-  <title>Üretim Takip Sistemi</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 0;
-      padding: 0;
-      background: #f2f2f2;
-    }
-    header {
-      background-color: #3b82f6;
-      color: white;
-      padding: 20px;
-      text-align: center;
-      position: relative;
-    }
-    #back-button {
-      position: absolute;
-      top: 20px;
-      left: 20px;
-      background: white;
-      color: #3b82f6;
-      border: 1px solid #3b82f6;
-      padding: 5px 12px;
-      border-radius: 6px;
-      cursor: pointer;
-      font-weight: bold;
-    }
-    .hidden {
-      display: none;
-    }
-    .dashboard {
-      display: flex;
-      justify-content: center;
-      gap: 20px;
-      padding: 20px;
-    }
-    .widget {
-      background: white;
-      padding: 40px;
-      border-radius: 12px;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-      cursor: pointer;
-      font-size: 1.2rem;
-      text-align: center;
-      transition: transform 0.2s ease;
-    }
-    .widget:hover {
-      transform: scale(1.05);
-    }
-    #content-area {
-      margin: 20px auto;
-      width: 90%;
-      background: white;
-      padding: 20px;
-      border-radius: 8px;
-      min-height: 300px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.05);
-    }
-    .context-menu {
-      position: absolute;
-      background: white;
-      border: 1px solid #ccc;
-      border-radius: 6px;
-      list-style: none;
-      padding: 5px 0;
-      margin: 0;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.15);
-      z-index: 999;
-    }
-    .context-menu li {
-      padding: 8px 16px;
-      cursor: pointer;
-    }
-    .context-menu li:hover {
-      background-color: #f0f0f0;
-    }
-    hr {
-      border: none;
-      border-top: 1px solid #ddd;
-      margin: 10px 0;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <title>Üretim Takip Sistemi</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: #f2f2f2;
+        }
+        header {
+            background-color: #3b82f6;
+            color: white;
+            padding: 20px;
+            text-align: center;
+            position: relative;
+        }
+        #back-button {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: white;
+            color: #3b82f6;
+            border: 1px solid #3b82f6;
+            padding: 5px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .hidden {
+            display: none;
+        }
+        .dashboard {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            padding: 20px;
+        }
+        .widget {
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            cursor: pointer;
+            font-size: 1.2rem;
+            text-align: center;
+            transition: transform 0.2s ease;
+        }
+        .widget:hover {
+            transform: scale(1.05);
+        }
+        #content-area {
+            margin: 20px auto;
+            width: 90%;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            min-height: 300px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.05);
+        }
+        .context-menu {
+            position: absolute;
+            background: white;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            list-style: none;
+            padding: 5px 0;
+            margin: 0;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+            z-index: 999;
+        }
+        .context-menu li {
+            padding: 8px 16px;
+            cursor: pointer;
+        }
+        .context-menu li:hover {
+            background-color: #f0f0f0;
+        }
+        .material-item {
+            border-bottom: 1px solid #ccc;
+            padding: 10px 0;
+        }
+    </style>
 </head>
 <body>
-  <header>
-    <button id="back-button" onclick="goBack()" class="hidden">⬅ Geri</button>
-    <h1>Üretim Takip Paneli</h1>
-  </header>
+    <header>
+        <button id="back-button" onclick="goBack()" class="hidden">⬅ Geri</button>
+        <h1>Üretim Takip Paneli</h1>
+    </header>
 
-  <main>
-    <div class="dashboard" id="widget-container">
-      <div class="widget" onclick="loadSection('materials')">📦 Malzemelerim</div>
-      <div class="widget" onclick="loadSection('recipes')">📋 Reçetelerim</div>
-      <div class="widget" onclick="loadSection('orders')">🏭 Üretim Emirlerim</div>
+    <main>
+        <div class="dashboard" id="widget-container">
+            <div class="widget" onclick="loadSection('materials')">📦 Malzemelerim</div>
+            <div class="widget" onclick="loadSection('recipes')">📋 Reçetelerim</div>
+            <div class="widget" onclick="loadSection('orders')">🏭 Üretim Emirlerim</div>
+            <div class="widget" onclick="loadSection('warehouses')">🏢 Ambarlar</div>
+        </div>
+
+        <section id="content-area" oncontextmenu="return showContextMenu(event)">
+            <!-- İçerik buraya gelecek -->
+        </section>
+    </main>
+
+    <ul id="context-menu" class="context-menu hidden">
+        <!-- Sağ tık menüsü dinamik olacak -->
+    </ul>
+
+    <!-- Malzeme Ekleme Modalı -->
+    <div id="material-modal" class="hidden" style="position: fixed; top: 10%; left: 50%; transform: translateX(-50%); background: white; border: 1px solid #ccc; padding: 20px; width: 500px; max-width: 90%; box-shadow: 0 4px 10px rgba(0,0,0,0.2); border-radius: 10px; z-index: 1000;">
+        <h3>Malzeme Ekle</h3>
+        <input id="material-name" type="text" placeholder="Ürün Adı" style="width:100%; margin-bottom:10px">
+        <input id="material-unit" type="text" placeholder="Birim (kg, adet...)" style="width:100%; margin-bottom:10px">
+        <input id="material-qty" type="number" placeholder="Adet" style="width:100%; margin-bottom:10px">
+        <input id="material-cycle" type="text" placeholder="Çevrim Süresi (opsiyonel)" style="width:100%; margin-bottom:10px">
+        <select id="material-type" style="width:100%; margin-bottom:10px">
+            <option value="">Ürün Cinsini Seçin</option>
+            <option value="Hammadde">Hammadde</option>
+            <option value="Yarı-Mamul">Yarı-Mamul</option>
+            <option value="Mamul">Mamul</option>
+            <option value="Demirbaş">Demirbaş</option>
+            <option value="Aksam Parça">Aksam Parça</option>
+        </select>
+        <input id="material-warehouse" type="text" placeholder="Ambar Adı" style="width:100%; margin-bottom:10px">
+        <input id="material-code" type="text" placeholder="Stok Kodu" style="width:100%; margin-bottom:10px">
+
+        <button onclick="submitMaterial()">💾 Kaydet</button>
+        <button onclick="closeMaterialModal()">❌ İptal</button>
     </div>
 
-    <section id="content-area" oncontextmenu="return showContextMenu(event)">
-      <!-- İçerik buraya gelecek -->
-    </section>
-  </main>
+    <script>
+        let currentSection = '';
 
-  <ul id="context-menu" class="context-menu hidden"></ul>
+        function loadSection(section) {
+            currentSection = section;
+            hideContextMenu();
+            document.getElementById("widget-container").style.display = "none";
+            document.getElementById("back-button").classList.remove("hidden");
 
-  <script>
-    let currentSection = '';
-
-    function loadSection(section) {
-      currentSection = section;
-      hideContextMenu();
-      document.getElementById("widget-container").style.display = "none";
-      document.getElementById("back-button").classList.remove("hidden");
-
-      fetch(`/${section}`)
-        .then(res => res.json())
-        .then(data => renderList(data))
-        .catch(err => {
-          document.getElementById("content-area").innerHTML = `<p style="color:red">Hata oluştu: ${err}</p>`;
-        });
-    }
-
-    function renderList(data) {
-      const area = document.getElementById("content-area");
-      if (!Array.isArray(data)) return;
-
-      area.innerHTML = data.map((item, index) => {
-        let content = "";
-        if (currentSection === 'materials') {
-          content = `<div><strong>${item.name.toUpperCase()}</strong> - ${item.stock_amount} ${item.unit.toUpperCase()}</div>`;
-        } else if (currentSection === 'recipes') {
-          content = `<div><strong>${item.name || 'Reçete'} (#${item.id})</strong></div>`;
-        } else if (currentSection === 'orders') {
-          content = `<div><strong>${item.product}</strong> - ${item.quantity} adet (${item.status})</div>`;
+            fetch(`/${section}`)
+                .then(res => res.json())
+                .then(data => renderList(data))
+                .catch(err => {
+                    document.getElementById("content-area").innerHTML = `<p style="color:red">Hata oluştu: ${err}</p>`;
+                });
         }
-        // Her satırdan sonra çizgi ekle
-        return content + (index < data.length - 1 ? '<hr>' : '');
-      }).join('');
-    }
 
-    function showContextMenu(event) {
-      event.preventDefault();
-      const menu = document.getElementById("context-menu");
-      menu.innerHTML = '';
+        function renderList(data) {
+            const area = document.getElementById("content-area");
+            if (!Array.isArray(data)) return;
+            area.innerHTML = data.map(item => {
+                if (currentSection === 'materials') {
+                    return `<div class="material-item"><strong>${item.stock_code}</strong> - ${item.name} (${item.type}) - ${item.warehouse}</div>`;
+                } else if (currentSection === 'recipes') {
+                    return `<div onclick="editRecipe(${item.id})" style="cursor:pointer"><strong>${item.name || 'Reçete'} (#${item.id})</strong></div>`;
+                } else if (currentSection === 'orders') {
+                    return `<div><strong>${item.product}</strong> - ${item.quantity} adet (${item.status})</div>`;
+                } else if (currentSection === 'warehouses') {
+                    return `<div>${item.name}</div>`;
+                }
+            }).join("");
+        }
 
-      if (currentSection === 'materials') {
-        menu.innerHTML = '<li onclick="addMaterial()">Malzeme Ekle</li>';
-      } else if (currentSection === 'recipes') {
-        menu.innerHTML = '<li onclick="alert(\'Reçete ekleme gelecektir.\')">Reçete Ekle</li>';
-      } else if (currentSection === 'orders') {
-        menu.innerHTML = '<li onclick="alert(\'Üretim emri ekleme gelecektir.\')">Üretim Emri Ekle</li>';
-      }
+        function showContextMenu(event) {
+            event.preventDefault();
+            const menu = document.getElementById("context-menu");
+            menu.innerHTML = '';
 
-      menu.classList.remove("hidden");
-      menu.style.top = `${event.pageY}px`;
-      menu.style.left = `${event.pageX}px`;
-      return false;
-    }
+            if (currentSection === 'materials') {
+                menu.innerHTML = '<li onclick="openMaterialModal()">Malzeme Ekle</li>';
+            } else if (currentSection === 'recipes') {
+                menu.innerHTML = '<li onclick="addRecipe()">Reçete Ekle</li>';
+            } else if (currentSection === 'orders') {
+                menu.innerHTML = '<li onclick="addOrder()">Üretim Emri Ekle</li>';
+            } else if (currentSection === 'warehouses') {
+                menu.innerHTML = '<li onclick="addWarehouse()">Ambar Ekle</li>';
+            }
 
-    function hideContextMenu() {
-      document.getElementById("context-menu").classList.add("hidden");
-    }
+            menu.classList.remove("hidden");
+            menu.style.top = `${event.pageY}px`;
+            menu.style.left = `${event.pageX}px`;
+            return false;
+        }
 
-    function goBack() {
-      document.getElementById("widget-container").style.display = "flex";
-      document.getElementById("back-button").classList.add("hidden");
-      document.getElementById("content-area").innerHTML = '';
-      currentSection = '';
-    }
+        function hideContextMenu() {
+            document.getElementById("context-menu").classList.add("hidden");
+        }
 
-    function addMaterial() {
-      const name = prompt("Malzeme adı:");
-      const unit = prompt("Birim (örneğin kg, lt):");
-      const amount = prompt("Stok miktarı:");
-      if (!name || !unit) return;
+        document.addEventListener("click", hideContextMenu);
 
-      fetch('/materials', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, unit, stock_amount: parseFloat(amount) || 0 })
-      }).then(() => loadSection('materials'));
-    }
+        function goBack() {
+            document.getElementById("widget-container").style.display = "flex";
+            document.getElementById("back-button").classList.add("hidden");
+            document.getElementById("content-area").innerHTML = '';
+            currentSection = '';
+        }
 
-    document.addEventListener("click", hideContextMenu);
-  </script>
+        function openMaterialModal() {
+            document.getElementById("material-modal").classList.remove("hidden");
+        }
+
+        function closeMaterialModal() {
+            document.getElementById("material-modal").classList.add("hidden");
+        }
+
+        function submitMaterial() {
+            const data = {
+                name: document.getElementById("material-name").value,
+                unit: document.getElementById("material-unit").value,
+                stock_amount: parseFloat(document.getElementById("material-qty").value) || 0,
+                cycle_time: document.getElementById("material-cycle").value,
+                type: document.getElementById("material-type").value,
+                warehouse: document.getElementById("material-warehouse").value,
+                stock_code: document.getElementById("material-code").value
+            };
+
+            fetch('/materials', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(data)
+            }).then(() => {
+                closeMaterialModal();
+                loadSection('materials');
+            });
+        }
+
+        function addRecipe() {
+            alert("Reçete ekleme paneli açılacak.");
+        }
+
+        function addOrder() {
+            alert("Üretim emri ekleme paneli açılacak.");
+        }
+
+        function addWarehouse() {
+            const name = prompt("Ambar adı:");
+            if (!name) return;
+            fetch('/warehouses', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ name })
+            }).then(() => loadSection('warehouses'));
+        }
+    </script>
 </body>
 </html>
