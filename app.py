@@ -1,14 +1,14 @@
 from flask import Flask, request, jsonify, render_template
 import sqlite3
 
-app = Flask(__name__, static_url_path="/static")
+app = Flask(__name__, static_url_path='/static')
 DB_NAME = "database.db"
 
 def init_db():
     conn = sqlite3.connect(DB_NAME)
     c = conn.cursor()
 
-    # Ambarlar tablosu
+    # Ambarlar
     c.execute('''
         CREATE TABLE IF NOT EXISTS warehouses (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -16,7 +16,7 @@ def init_db():
         )
     ''')
 
-    # Malzemeler tablosu
+    # Malzemeler
     c.execute('''
         CREATE TABLE IF NOT EXISTS materials (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -37,7 +37,7 @@ init_db()
 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    return render_template("index.html")
 
 @app.route('/materials', methods=['GET'])
 def get_materials():
@@ -87,7 +87,9 @@ def get_warehouses():
     c.execute("SELECT * FROM warehouses")
     rows = c.fetchall()
     conn.close()
-    return jsonify([{"id": row[0], "name": row[1]} for row in rows])
+    return jsonify([
+        {"id": row[0], "name": row[1]} for row in rows
+    ])
 
 @app.route('/warehouses', methods=['POST'])
 def add_warehouse():
