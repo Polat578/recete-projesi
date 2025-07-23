@@ -1,66 +1,107 @@
 // script.js
 
-// Malzeme listesini yükler
+const BASE_URL = "https://recete-backend.onrender.com"; // Kendi Render backend URL'inle değiştir
+
+// Ambarları yükle
+async function loadWarehouses() {
+  try {
+    const res = await fetch(`${BASE_URL}/warehouses`);
+    if (!res.ok) throw new Error(`HTTP hata: ${res.status}`);
+    const warehouses = await res.json();
+
+    const list = document.getElementById("warehouseList");
+    const select = document.getElementById("warehouseSelect");
+    if (list) list.innerHTML = '';
+    if (select) select.innerHTML = '';
+
+    warehouses.forEach(w => {
+      if (list) {
+        const row = `<li>${w.name}</li>`;
+        list.insertAdjacentHTML("beforeend", row);
+      }
+
+      if (select) {
+        const option = document.createElement("option");
+        option.value = w.id;
+        option.textContent = w.name;
+        select.appendChild(option);
+      }
+    });
+  } catch (err) {
+    console.error("Ambarlar yüklenirken hata:", err);
+    alert("Ambar verisi alınamadı.");
+  }
+}
+
+// Yeni ambar ekle
+async function addWarehouse() {
+  const nameInput = document.getElementById("warehouseName");
+  const name = nameInput?.value.trim();
+
+  if (!name) {
+    alert("Lütfen ambar ismi girin.");
+    return;
+  }
+
+  try {
+    const res = await fetch(`${BASE_URL}/warehouses`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name }),
+    });
+
+    const result = await res.json();
+    if (res.ok) {
+      alert("✅ Ambar eklendi.");
+      nameInput.value = "";
+      loadWarehouses();
+    } else {
+      alert("❌ Hata: " + result.error);
+    }
+  } catch (err) {
+    console.error("Ambar eklenirken hata:", err);
+    alert("Sunucu hatası.");
+  }
+}
+
+// Malzeme listesini yükle
 async function loadMaterials() {
   try {
-    const res = await fetch('/materials');
-    if (!res.ok) {
-      throw new Error(`HTTP hata: ${res.status}`);
-    }
-
+    const res = await fetch(`${BASE_URL}/materials`);
+    if (!res.ok) throw new Error(`HTTP hata: ${res.status}`);
     const materials = await res.json();
-    const tbody = document.getElementById('materialsList');
-    const materialSelect = document.getElementById('materialSelect');
-    tbody.innerHTML = '';
-    materialSelect.innerHTML = '';
+
+    const tbody = document.getElementById("materialsList");
+    const materialSelect = document.getElementById("materialSelect");
+    if (tbody) tbody.innerHTML = '';
+    if (materialSelect) materialSelect.innerHTML = '';
 
     materials.forEach(m => {
-      const row = `<tr><td>${m.name}</td><td>${m.unit}</td><td>${m.stock_amount}</td></tr>`;
-      tbody.insertAdjacentHTML('beforeend', row);
+      if (tbody) {
+        const row = `<tr><td>${m.name}</td><td>${m.unit}</td><td>${m.stock_amount}</td></tr>`;
+        tbody.insertAdjacentHTML("beforeend", row);
+      }
 
-      const option = document.createElement('option');
-      option.value = m.id;
-      option.textContent = m.name;
-      materialSelect.appendChild(option);
+      if (materialSelect) {
+        const option = document.createElement("option");
+        option.value = m.id;
+        option.textContent = m.name;
+        materialSelect.appendChild(option);
+      }
     });
   } catch (err) {
-    console.error('Malzeme yüklenirken hata oluştu:', err);
-    alert('❌ Malzeme verisi alınamadı. Lütfen sunucunun çalıştığından ve "/materials" adresinin geçerli olduğundan emin olun.');
+    console.error("Malzeme yüklenirken hata:", err);
+    alert("❌ Malzeme verisi alınamadı.");
   }
 }
 
-// Ürün listesini yükler
-async function loadProducts() {
-  try {
-    const res = await fetch('/products');
-    if (!res.ok) {
-      throw new Error(`HTTP hata: ${res.status}`);
-    }
+// Sayfa yüklendiğinde otomatik veri çek
+document.addEventListener("DOMContentLoaded", () => {
+  loadWarehouses();
+  loadMaterials();
 
-    const products = await res.json();
-    const tbody = document.getElementById('productsList');
-    const productSelect = document.getElementById('productSelect');
-    const orderProductSelect = document.getElementById('orderProductSelect');
-    tbody.innerHTML = '';
-    productSelect.innerHTML = '';
-    orderProductSelect.innerHTML = '';
-
-    products.forEach(p => {
-      const row = `<tr><td>${p.name}</td><td>${p.unit}</td><td>${p.stock_amount}</td></tr>`;
-      tbody.insertAdjacentHTML('beforeend', row);
-
-      const option1 = document.createElement('option');
-      option1.value = p.id;
-      option1.textContent = p.name;
-      productSelect.appendChild(option1);
-
-      const option2 = document.createElement('option');
-      option2.value = p.id;
-      option2.textContent = p.name;
-      orderProductSelect.appendChild(option2);
-    });
-  } catch (err) {
-    console.error('Ürün yüklenirken hata oluştu:', err);
-    alert('❌ Ürün verisi alınamadı.');
+  const addBtn = document.getElementById("addWarehouseBtn");
+  if (addBtn) {
+    addBtn.addEventListener("click", addWarehouse);
   }
-}
+});
