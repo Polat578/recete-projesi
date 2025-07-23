@@ -44,3 +44,33 @@ def add_warehouse():
     except Exception as e:
         print(f"❌ /warehouses POST hatası: {e}")
         return jsonify({"error": "Ambar eklenemedi"}), 500
+
+# 🔹 Malzemeler
+@app.route('/materials', methods=['GET', 'POST'])
+def materials():
+    if request.method == 'GET':
+        return jsonify([])  # örnek boş liste
+    elif request.method == 'POST':
+        data = request.get_json()
+        print("Yeni malzeme:", data)
+        return jsonify({"message": "Malzeme eklendi"}), 201
+
+# 🔹 Reçeteler
+@app.route('/recipes', methods=['GET', 'POST'])
+def recipes():
+    if request.method == 'GET':
+        return jsonify([])  # örnek boş liste
+    elif request.method == 'POST':
+        data = request.get_json()
+        print("Yeni reçete:", data)
+        return jsonify({"message": "Reçete eklendi"}), 201
+
+# 🔹 Üretim Emirleri
+@app.route('/orders', methods=['GET', 'POST'])
+def orders():
+    if request.method == 'GET':
+        return jsonify([])  # örnek boş liste
+    elif request.method == 'POST':
+        data = request.get_json()
+        print("Yeni sipariş:", data)
+        return jsonify({"message": "Sipariş eklendi"}), 201
