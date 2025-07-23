@@ -1,17 +1,18 @@
-import os
-print("🧪 DATABASE_URL:", os.environ.get("DATABASE_URL"))
 from flask import Flask, jsonify, render_template
 import psycopg2
 import os
-from dotenv import load_dotenv
-
-# .env dosyasını oku
-load_dotenv()
 
 app = Flask(__name__, static_url_path='/static')
 
-# PostgreSQL bağlantı adresi
+# DATABASE_URL ortam değişkenini oku
 DATABASE_URL = os.environ.get("DATABASE_URL")
+
+# 🧪 Test: Ortam değişkeni geliyor mu?
+print("🧪 Render ortam değişkeni (DATABASE_URL):", DATABASE_URL)
+
+# Ortam değişkeni tanımlı değilse açık hata ver
+if not DATABASE_URL:
+    raise RuntimeError("❌ HATA: DATABASE_URL ortam değişkeni tanımlı değil. Render ayarlarını kontrol et.")
 
 def get_connection():
     return psycopg2.connect(DATABASE_URL)
@@ -44,7 +45,7 @@ def get_materials():
         print(f"❌ /materials hatası: {e}")
         return jsonify({"error": "Bir hata oluştu"}), 500
 
-# ✅ Bu route bir kez çağrıldığında tabloyu oluşturur
+# ✅ Geçici: Tabloyu oluşturmak için bir kere çalıştırılacak route
 @app.route('/init-db')
 def init_db():
     try:
@@ -66,8 +67,5 @@ def init_db():
         conn.close()
         return "✅ Veritabanı başarıyla oluşturuldu."
     except Exception as e:
-        print(f"❌ Veritabanı oluşturulurken hata: {e}")
+        print(f"❌ init-db hatası: {e}")
         return f"Hata: {e}", 500
-
-if __name__ == '__main__':
-    app.run(debug=True, host="0.0.0.0")
