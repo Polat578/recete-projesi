@@ -2,39 +2,56 @@
 <html lang="tr">
 <head>
   <meta charset="UTF-8">
-  <title>Ambar Ekle</title>
+  <title>Ambar Yönetimi</title>
 </head>
 <body>
   <h1>Ambar Ekle</h1>
 
   <form id="warehouseForm">
-    <label>Ambar Adı:</label>
-    <input type="text" id="warehouseName" name="name" required>
+    <input type="text" id="warehouseName" placeholder="Ambar Adı" required>
     <button type="submit">Ekle</button>
   </form>
 
   <p id="result"></p>
 
+  <h2>Mevcut Ambarlar</h2>
+  <ul id="warehouseList"></ul>
+
   <script>
-    document.getElementById('warehouseForm').addEventListener('submit', async function(e) {
+    async function loadWarehouses() {
+      const res = await fetch('/warehouses');
+      const data = await res.json();
+      const list = document.getElementById('warehouseList');
+      list.innerHTML = '';
+      data.forEach(w => {
+        const li = document.createElement('li');
+        li.textContent = w.name;
+        list.appendChild(li);
+      });
+    }
+
+    document.getElementById('warehouseForm').addEventListener('submit', async function (e) {
       e.preventDefault();
 
       const name = document.getElementById('warehouseName').value.trim();
-      if (!name) return alert("Boş isim gönderilemez!");
+      if (!name) return;
 
       const res = await fetch('/warehouses', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name })
       });
 
       const result = await res.json();
-      document.getElementById('result').innerText = res.ok
-        ? result.message
-        : result.error || "Hata oluştu.";
+      document.getElementById('result').innerText = res.ok ? result.message : result.error || 'Hata';
+      if (res.ok) {
+        document.getElementById('warehouseName').value = '';
+        loadWarehouses();
+      }
     });
+
+    // Sayfa yüklendiğinde listele
+    loadWarehouses();
   </script>
 </body>
 </html>
