@@ -8,15 +8,6 @@ def init_db():
     conn = sqlite3.connect(DB_NAME)
     c = conn.cursor()
 
-    # Ambarlar
-    c.execute('''
-        CREATE TABLE IF NOT EXISTS warehouses (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL
-        )
-    ''')
-
-    # Malzemeler
     c.execute('''
         CREATE TABLE IF NOT EXISTS materials (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -24,9 +15,16 @@ def init_db():
             unit TEXT NOT NULL,
             stock_amount REAL DEFAULT 0,
             cycle_time TEXT,
-            type TEXT,
-            warehouse TEXT,
-            stock_code TEXT
+            type TEXT NOT NULL,
+            warehouse TEXT NOT NULL,
+            stock_code TEXT NOT NULL
+        )
+    ''')
+
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS warehouses (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL
         )
     ''')
 
@@ -39,7 +37,47 @@ init_db()
 def index():
     return render_template('index.html')
 
-# === MALZEMELER ===
+
+# ✅ Malzeme Ekle
+@app.route('/materials', methods=['POST'])
+def add_material():
+    data = request.json
+    conn = sqlite3.connect(DB_NAME)
+    c = conn.cursor()
+    c.execute('''
+        INSERT INTO materials (name, unit, stock_amount, cycle_time, type, warehouse, stock_code)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+    ''', (
+        data['name'], data['unit'], data['stock_amount'],
+        data.get('cycle_time', ''), data['type'],
+        data['warehouse'], data['stock_code']
+    ))
+    conn.commit()
+    conn.close()
+    return jsonify({"message": "Malzeme eklendi"})
+
+
+# ✅ Malzeme Güncelle
+@app.route('/materials/<int:material_id>', methods=['PUT'])
+def update_material(material_id):
+    data = request.json
+    conn = sqlite3.connect(DB_NAME)
+    c = conn.cursor()
+    c.execute('''
+        UPDATE materials
+        SET name = ?, unit = ?, stock_amount = ?, cycle_time = ?, type = ?, warehouse = ?, stock_code = ?
+        WHERE id = ?
+    ''', (
+        data['name'], data['unit'], data['stock_amount'],
+        data.get('cycle_time', ''), data['type'],
+        data['warehouse'], data['stock_code'], material_id
+    ))
+    conn.commit()
+    conn.close()
+    return jsonify({"message": "Malzeme güncellendi"})
+
+
+# ✅ Malzemeleri Listele
 @app.route('/materials', methods=['GET'])
 def get_materials():
     conn = sqlite3.connect(DB_NAME)
@@ -49,65 +87,37 @@ def get_materials():
     conn.close()
     return jsonify([
         {
-            "id": row[0],
-            "name": row[1],
-            "unit": row[2],
-            "stock_amount": row[3],
-            "cycle_time": row[4],
-            "type": row[5],
-            "warehouse": row[6],
-            "stock_code": row[7]
-        } for row in rows
+            "id": row[0], "name": row[1], "unit": row[2], "stock_amount": row[3],
+            "cycle_time": row[4], "type": row[5], "warehouse": row[6], "stock_code": row[7]
+        }
+        for row in rows
     ])
 
-@app.route('/materials', methods=['POST'])
-def add_material():
-    data = request.get_json()
-    required = ['name', 'unit', 'type', 'warehouse', 'stock_code']
-    for field in required:
-        if not data.get(field):
-            return jsonify({'error': f'{field} zorunlu'}), 400
 
+# ✅ Ambar Ekle
+@app.route('/warehouses', methods=['POST'])
+def add_warehouse():
+    data = request.json
     conn = sqlite3.connect(DB_NAME)
     c = conn.cursor()
-    c.execute('''
-        INSERT INTO materials (name, unit, stock_amount, cycle_time, type, warehouse, stock_code)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-    ''', (
-        data['name'],
-        data['unit'],
-        data.get('stock_amount', 0),
-        data.get('cycle_time', ''),
-        data['type'],
-        data['warehouse'],
-        data['stock_code']
-    ))
+    c.execute("INSERT INTO warehouses (name) VALUES (?)", (data['name'],))
     conn.commit()
     conn.close()
-    return jsonify({'message': 'Malzeme eklendi'})
+    return jsonify({"message": "Ambar eklendi"})
 
-# === AMBARLAR ===
+
+# ✅ Ambarları Listele
 @app.route('/warehouses', methods=['GET'])
-def get_warehouses():
+def list_warehouses():
     conn = sqlite3.connect(DB_NAME)
     c = conn.cursor()
-    c.execute("SELECT id, name FROM warehouses")
+    c.execute("SELECT * FROM warehouses")
     rows = c.fetchall()
     conn.close()
     return jsonify([{"id": row[0], "name": row[1]} for row in rows])
 
-@app.route('/warehouses', methods=['POST'])
-def add_warehouse():
-    data = request.get_json()
-    name = data.get('name')
-    if not name:
-        return jsonify({'error': 'Ambar adı gerekli'}), 400
-    conn = sqlite3.connect(DB_NAME)
-    c = conn.cursor()
-    c.execute("INSERT INTO warehouses (name) VALUES (?)", (name,))
-    conn.commit()
-    conn.close()
-    return jsonify({'message': 'Ambar eklendi'})
+
+# ✅ Geri kalan endpointler (isteğe göre eklenebilir)
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(host='0.0.0.0', port=5000, debug=True)
