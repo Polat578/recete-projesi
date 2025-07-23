@@ -108,6 +108,21 @@ def add_recipe():
     conn.close()
     return jsonify({"message": "Reçeteye eklendi."})
 
+@app.route('/recipes', methods=['GET'])
+def list_recipes():
+    conn = sqlite3.connect(DB_NAME)
+    c = conn.cursor()
+    c.execute('''
+        SELECT DISTINCT r.product_id, p.name
+        FROM recipes r
+        JOIN products p ON r.product_id = p.id
+    ''')
+    rows = c.fetchall()
+    conn.close()
+    return jsonify([
+        {"id": row[0], "name": row[1]} for row in rows
+    ])
+
 @app.route('/recipes/<int:product_id>', methods=['GET'])
 def get_recipe(product_id):
     conn = sqlite3.connect(DB_NAME)
@@ -154,14 +169,12 @@ def list_orders():
 def complete_order(order_id):
     conn = sqlite3.connect(DB_NAME)
     c = conn.cursor()
-
     c.execute("SELECT product_id, quantity FROM production_orders WHERE id = ?", (order_id,))
     order = c.fetchone()
     if not order:
         return jsonify({"error": "Üretim emri bulunamadı"}), 404
 
     product_id, product_qty = order
-
     c.execute("SELECT material_id, quantity FROM recipes WHERE product_id = ?", (product_id,))
     recipe_items = c.fetchall()
 
@@ -176,18 +189,3 @@ def complete_order(order_id):
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
-    @app.route('/recipes', methods=['GET'])
-def list_recipes():
-    conn = sqlite3.connect(DB_NAME)
-    c = conn.cursor()
-    c.execute('''
-        SELECT DISTINCT r.product_id, p.name
-        FROM recipes r
-        JOIN products p ON r.product_id = p.id
-    ''')
-    rows = c.fetchall()
-    conn.close()
-    return jsonify([
-        {"id": row[0], "name": row[1]} for row in rows
-    ])
-
