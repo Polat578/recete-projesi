@@ -16,6 +16,22 @@
             color: white;
             padding: 20px;
             text-align: center;
+            position: relative;
+        }
+        #back-button {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: white;
+            color: #3b82f6;
+            border: 1px solid #3b82f6;
+            padding: 5px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .hidden {
+            display: none;
         }
         .dashboard {
             display: flex;
@@ -63,30 +79,28 @@
         .context-menu li:hover {
             background-color: #f0f0f0;
         }
-        .hidden {
-            display: none;
-        }
     </style>
 </head>
 <body>
     <header>
+        <button id="back-button" onclick="goBack()" class="hidden">⬅ Geri</button>
         <h1>Üretim Takip Paneli</h1>
     </header>
 
     <main>
-        <div class="dashboard">
+        <div class="dashboard" id="widget-container">
             <div class="widget" onclick="loadSection('materials')">📦 Malzemelerim</div>
             <div class="widget" onclick="loadSection('recipes')">📋 Reçetelerim</div>
             <div class="widget" onclick="loadSection('orders')">🏭 Üretim Emirlerim</div>
         </div>
 
         <section id="content-area" oncontextmenu="return showContextMenu(event)">
-            <!-- Liste buraya gelecek -->
+            <!-- İçerik buraya gelecek -->
         </section>
     </main>
 
     <ul id="context-menu" class="context-menu hidden">
-        <!-- Sağ tık menüsü dinamik olarak değişecek -->
+        <!-- Sağ tık menüsü dinamik olacak -->
     </ul>
 
     <script>
@@ -95,6 +109,9 @@
         function loadSection(section) {
             currentSection = section;
             hideContextMenu();
+            document.getElementById("widget-container").style.display = "none";
+            document.getElementById("back-button").classList.remove("hidden");
+
             fetch(`/${section}`)
                 .then(res => res.json())
                 .then(data => renderList(data))
@@ -106,66 +123,3 @@
         function renderList(data) {
             const area = document.getElementById("content-area");
             if (!Array.isArray(data)) return;
-            area.innerHTML = data.map(item => {
-                if (currentSection === 'materials') {
-                    return `<div><strong>${item.name}</strong> - ${item.stock_amount} ${item.unit}</div>`;
-                } else if (currentSection === 'recipes') {
-                    return `<div onclick="editRecipe(${item.id})" style="cursor:pointer"><strong>${item.name || 'Reçete'} (#${item.id})</strong></div>`;
-                } else if (currentSection === 'orders') {
-                    return `<div><strong>${item.product}</strong> - ${item.quantity} adet (${item.status})</div>`;
-                }
-            }).join("");
-        }
-
-        function showContextMenu(event) {
-            event.preventDefault();
-            const menu = document.getElementById("context-menu");
-            menu.innerHTML = '';
-
-            if (currentSection === 'materials') {
-                menu.innerHTML = '<li onclick="addMaterial()">Malzeme Ekle</li>';
-            } else if (currentSection === 'recipes') {
-                menu.innerHTML = '<li onclick="addRecipe()">Reçete Ekle</li>';
-            } else if (currentSection === 'orders') {
-                menu.innerHTML = '<li onclick="addOrder()">Üretim Emri Ekle</li>';
-            }
-
-            menu.classList.remove("hidden");
-            menu.style.top = `${event.pageY}px`;
-            menu.style.left = `${event.pageX}px`;
-            return false;
-        }
-
-        function hideContextMenu() {
-            document.getElementById("context-menu").classList.add("hidden");
-        }
-
-        document.addEventListener("click", hideContextMenu);
-
-        function addMaterial() {
-            const name = prompt("Malzeme adı:");
-            const unit = prompt("Birim (örneğin kg, lt):");
-            const amount = prompt("Stok miktarı:");
-            if (!name || !unit) return;
-
-            fetch('/materials', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ name, unit, stock_amount: parseFloat(amount) || 0 })
-            }).then(() => loadSection('materials'));
-        }
-
-        function addRecipe() {
-            alert("Reçete ekleme arayüzü buraya gelecek.");
-        }
-
-        function addOrder() {
-            alert("Üretim emri ekleme arayüzü buraya gelecek.");
-        }
-
-        function editRecipe(id) {
-            alert(`Reçete düzenleme: ID ${id}`);
-        }
-    </script>
-</body>
-</html>
