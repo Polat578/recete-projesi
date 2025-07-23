@@ -1,11 +1,10 @@
-from flask import Flask, jsonify, render_template
+from flask import Flask, jsonify, render_template, request
 import psycopg2
 import os
 
 app = Flask(__name__, static_url_path='/static')
 
 DATABASE_URL = os.environ.get("DATABASE_URL")
-
 print("🧪 Render ortam değişkeni (DATABASE_URL):", DATABASE_URL)
 
 if not DATABASE_URL:
@@ -18,7 +17,7 @@ def get_connection():
 def index():
     return render_template("index.html")
 
-# ✅ MATERIALS
+# ✅ GET materials
 @app.route('/materials', methods=['GET'])
 def get_materials():
     try:
@@ -43,7 +42,64 @@ def get_materials():
         print(f"❌ /materials hatası: {e}")
         return jsonify({"error": "Bir hata oluştu"}), 500
 
-# ✅ PRODUCTS
+# ✅ POST materials
+@app.route('/materials', methods=['POST'])
+def add_material():
+    try:
+        data = request.get_json()
+        conn = get_connection()
+        cur = conn.cursor()
+        cur.execute("""
+            INSERT INTO materials (name, unit, stock_amount, cycle_time, type, warehouse, stock_code)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
+        """, (
+            data.get('name'),
+            data.get('unit'),
+            data.get('stock_amount'),
+            data.get('cycle_time'),
+            data.get('type'),
+            data.get('warehouse'),
+            data.get('stock_code')
+        ))
+        conn.commit()
+        conn.close()
+        return jsonify({"message": "✅ Malzeme eklendi"}), 201
+    except Exception as e:
+        print(f"❌ Malzeme ekleme hatası: {e}")
+        return jsonify({"error": "Malzeme eklenemedi"}), 500
+
+# ✅ GET warehouses
+@app.route('/warehouses', methods=['GET'])
+def get_warehouses():
+    try:
+        conn = get_connection()
+        cur = conn.cursor()
+        cur.execute("SELECT id, name FROM warehouses")
+        rows = cur.fetchall()
+        conn.close()
+        return jsonify([
+            {"id": row[0], "name": row[1]} for row in rows
+        ])
+    except Exception as e:
+        print(f"❌ /warehouses hatası: {e}")
+        return jsonify({"error": "Bir hata oluştu"}), 500
+
+# ✅ POST warehouses
+@app.route('/warehouses', methods=['POST'])
+def add_warehouse():
+    try:
+        data = request.get_json()
+        conn = get_connection()
+        cur = conn.cursor()
+        cur.execute("INSERT INTO warehouses (name) VALUES (%s)", (data.get('name'),))
+        conn.commit()
+        conn.close()
+        return jsonify({"message": "✅ Ambar eklendi"}), 201
+    except Exception as e:
+        print(f"❌ Ambar ekleme hatası: {e}")
+        return jsonify({"error": "Ambar eklenemedi"}), 500
+
+# ✅ GET products
 @app.route('/products', methods=['GET'])
 def get_products():
     try:
@@ -64,26 +120,7 @@ def get_products():
         print(f"❌ /products hatası: {e}")
         return jsonify({"error": "Bir hata oluştu"}), 500
 
-# ✅ WAREHOUSES
-@app.route('/warehouses', methods=['GET'])
-def get_warehouses():
-    try:
-        conn = get_connection()
-        cur = conn.cursor()
-        cur.execute("SELECT id, name FROM warehouses")
-        rows = cur.fetchall()
-        conn.close()
-        return jsonify([
-            {
-                "id": row[0],
-                "name": row[1]
-            } for row in rows
-        ])
-    except Exception as e:
-        print(f"❌ /warehouses hatası: {e}")
-        return jsonify({"error": "Bir hata oluştu"}), 500
-
-# ✅ ORDERS
+# ✅ GET orders
 @app.route('/orders', methods=['GET'])
 def get_orders():
     try:
@@ -104,14 +141,13 @@ def get_orders():
         print(f"❌ /orders hatası: {e}")
         return jsonify({"error": "Bir hata oluştu"}), 500
 
-# ✅ INIT DB: Tüm tabloları oluşturur
+# ✅ INIT DB – tüm tabloları oluşturur
 @app.route('/init-db')
 def init_db():
     try:
         conn = get_connection()
         cur = conn.cursor()
 
-        # materials tablosu
         cur.execute("""
             CREATE TABLE IF NOT EXISTS materials (
                 id SERIAL PRIMARY KEY,
@@ -125,7 +161,6 @@ def init_db():
             );
         """)
 
-        # products tablosu
         cur.execute("""
             CREATE TABLE IF NOT EXISTS products (
                 id SERIAL PRIMARY KEY,
@@ -135,7 +170,6 @@ def init_db():
             );
         """)
 
-        # warehouses tablosu
         cur.execute("""
             CREATE TABLE IF NOT EXISTS warehouses (
                 id SERIAL PRIMARY KEY,
@@ -143,7 +177,6 @@ def init_db():
             );
         """)
 
-        # orders tablosu
         cur.execute("""
             CREATE TABLE IF NOT EXISTS orders (
                 id SERIAL PRIMARY KEY,
@@ -160,6 +193,5 @@ def init_db():
         print(f"❌ init-db hatası: {e}")
         return f"Hata: {e}", 500
 
-# Render için bu satır şart değil ama yerelde test ediyorsan faydalı
 if __name__ == '__main__':
     app.run(debug=True, host="0.0.0.0")
