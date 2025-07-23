@@ -3,12 +3,12 @@ import psycopg2
 import os
 from dotenv import load_dotenv
 
-# .env dosyasını yükle
+# .env dosyasını oku
 load_dotenv()
 
 app = Flask(__name__, static_url_path='/static')
 
-# PostgreSQL bağlantı URL'si
+# PostgreSQL bağlantı adresi
 DATABASE_URL = os.environ.get("DATABASE_URL")
 
 def get_connection():
@@ -18,7 +18,6 @@ def get_connection():
 def index():
     return render_template("index.html")
 
-# ✅ Malzeme verilerini getir
 @app.route('/materials', methods=['GET'])
 def get_materials():
     try:
@@ -43,7 +42,7 @@ def get_materials():
         print(f"❌ /materials hatası: {e}")
         return jsonify({"error": "Bir hata oluştu"}), 500
 
-# ✅ Tabloyu Render'da otomatik oluşturmak için tek seferlik route
+# ✅ Bu route bir kez çağrıldığında tabloyu oluşturur
 @app.route('/init-db')
 def init_db():
     try:
