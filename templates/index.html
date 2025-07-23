@@ -104,13 +104,12 @@
         </section>
     </main>
 
-    <ul id="context-menu" class="context-menu hidden">
-        <!-- Sağ tık menüsü dinamik olacak -->
-    </ul>
+    <ul id="context-menu" class="context-menu hidden"></ul>
 
-    <!-- Malzeme Ekleme Modalı -->
+    <!-- Malzeme Modalı -->
     <div id="material-modal" class="hidden" style="position: fixed; top: 10%; left: 50%; transform: translateX(-50%); background: white; border: 1px solid #ccc; padding: 20px; width: 500px; max-width: 90%; box-shadow: 0 4px 10px rgba(0,0,0,0.2); border-radius: 10px; z-index: 1000;">
-        <h3>Malzeme Ekle</h3>
+        <h3>Malzeme Bilgisi</h3>
+        <input id="material-id" type="hidden">
         <input id="material-name" type="text" placeholder="Ürün Adı" style="width:100%; margin-bottom:10px">
         <input id="material-unit" type="text" placeholder="Birim (kg, adet...)" style="width:100%; margin-bottom:10px">
         <input id="material-qty" type="number" placeholder="Adet" style="width:100%; margin-bottom:10px">
@@ -123,7 +122,7 @@
             <option value="Demirbaş">Demirbaş</option>
             <option value="Aksam Parça">Aksam Parça</option>
         </select>
-        <input id="material-warehouse" type="text" placeholder="Ambar Adı" style="width:100%; margin-bottom:10px">
+        <select id="material-warehouse" style="width:100%; margin-bottom:10px"></select>
         <input id="material-code" type="text" placeholder="Stok Kodu" style="width:100%; margin-bottom:10px">
 
         <button onclick="submitMaterial()">💾 Kaydet</button>
@@ -132,6 +131,7 @@
 
     <script>
         let currentSection = '';
+        let selectedMaterialId = null;
 
         function loadSection(section) {
             currentSection = section;
@@ -152,7 +152,7 @@
             if (!Array.isArray(data)) return;
             area.innerHTML = data.map(item => {
                 if (currentSection === 'materials') {
-                    return `<div class="material-item"><strong>${item.stock_code}</strong> - ${item.name} (${item.type}) - ${item.warehouse}</div>`;
+                    return `<div class="material-item" oncontextmenu="openMaterialContext(event, ${encodeURIComponent(JSON.stringify(item))})"><strong>${item.stock_code}</strong> - ${item.name} (${item.type}) - ${item.warehouse}</div>`;
                 } else if (currentSection === 'recipes') {
                     return `<div onclick="editRecipe(${item.id})" style="cursor:pointer"><strong>${item.name || 'Reçete'} (#${item.id})</strong></div>`;
                 } else if (currentSection === 'orders') {
@@ -184,6 +184,70 @@
             return false;
         }
 
+        function openMaterialContext(event, item) {
+            event.preventDefault();
+            const menu = document.getElementById("context-menu");
+            const data = JSON.parse(decodeURIComponent(item));
+            menu.innerHTML = `<li onclick='editMaterial(${JSON.stringify(data)})'>Malzeme Düzenle</li>`;
+            menu.classList.remove("hidden");
+            menu.style.top = `${event.pageY}px`;
+            menu.style.left = `${event.pageX}px`;
+            return false;
+        }
+
+        function editMaterial(data) {
+            document.getElementById("material-id").value = data.id;
+            document.getElementById("material-name").value = data.name;
+            document.getElementById("material-unit").value = data.unit;
+            document.getElementById("material-qty").value = data.stock_amount;
+            document.getElementById("material-cycle").value = data.cycle_time;
+            document.getElementById("material-type").value = data.type;
+            document.getElementById("material-code").value = data.stock_code;
+            loadWarehouses(data.warehouse);
+            openMaterialModal();
+        }
+
+        function openMaterialModal() {
+            loadWarehouses();
+            document.getElementById("material-modal").classList.remove("hidden");
+        }
+
+        function closeMaterialModal() {
+            document.getElementById("material-modal").classList.add("hidden");
+            document.getElementById("material-id").value = '';
+        }
+
+        function loadWarehouses(selected = '') {
+            fetch('/warehouses')
+                .then(res => res.json())
+                .then(data => {
+                    const select = document.getElementById("material-warehouse");
+                    select.innerHTML = data.map(w => `<option value="${w.name}" ${w.name === selected ? 'selected' : ''}>${w.name}</option>`).join('');
+                });
+        }
+
+        function submitMaterial() {
+            const data = {
+                id: document.getElementById("material-id").value,
+                name: document.getElementById("material-name").value,
+                unit: document.getElementById("material-unit").value,
+                stock_amount: parseFloat(document.getElementById("material-qty").value) || 0,
+                cycle_time: document.getElementById("material-cycle").value,
+                type: document.getElementById("material-type").value,
+                warehouse: document.getElementById("material-warehouse").value,
+                stock_code: document.getElementById("material-code").value
+            };
+
+            fetch('/materials' + (data.id ? `/${data.id}` : ''), {
+                method: data.id ? 'PUT' : 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(data)
+            }).then(() => {
+                closeMaterialModal();
+                loadSection('materials');
+            });
+        }
+
         function hideContextMenu() {
             document.getElementById("context-menu").classList.add("hidden");
         }
@@ -195,35 +259,6 @@
             document.getElementById("back-button").classList.add("hidden");
             document.getElementById("content-area").innerHTML = '';
             currentSection = '';
-        }
-
-        function openMaterialModal() {
-            document.getElementById("material-modal").classList.remove("hidden");
-        }
-
-        function closeMaterialModal() {
-            document.getElementById("material-modal").classList.add("hidden");
-        }
-
-        function submitMaterial() {
-            const data = {
-                name: document.getElementById("material-name").value,
-                unit: document.getElementById("material-unit").value,
-                stock_amount: parseFloat(document.getElementById("material-qty").value) || 0,
-                cycle_time: document.getElementById("material-cycle").value,
-                type: document.getElementById("material-type").value,
-                warehouse: document.getElementById("material-warehouse").value,
-                stock_code: document.getElementById("material-code").value
-            };
-
-            fetch('/materials', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify(data)
-            }).then(() => {
-                closeMaterialModal();
-                loadSection('materials');
-            });
         }
 
         function addRecipe() {
