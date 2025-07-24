@@ -104,14 +104,11 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    let currentSection = '';
-
-    async function loadSection(section) {
-      currentSection = section;
-      console.log("Yüklenen bölüm:", section);
+    // 🔁 Widget tıklamaları için global fonksiyon
+    window.loadSection = async function (section) {
+      console.log("Tıklanan bölüm:", section);
       document.getElementById("widget-container").style.display = "none";
       document.getElementById("back-button").classList.remove("hidden");
-
       const content = document.getElementById("content-area");
 
       if (section === "warehouses") {
@@ -124,15 +121,15 @@
           return `<li>${d.name} - ${d.unit} - ${d.stock_amount}</li>`;
         }).join('')}</ul>`;
       } else {
-        content.innerHTML = `<p>📌 Bu bölüm henüz eklenmedi.</p>`;
+        content.innerHTML = `<p>📌 Bu bölüm henüz hazır değil.</p>`;
       }
-    }
+    };
 
+    // ⬅ Geri butonu fonksiyonu
     window.goBack = function () {
       document.getElementById("widget-container").style.display = "flex";
       document.getElementById("back-button").classList.add("hidden");
       document.getElementById("content-area").innerHTML = '';
-      currentSection = '';
     };
   </script>
 </body>
