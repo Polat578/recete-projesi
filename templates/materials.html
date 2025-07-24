@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <title>Malzemeler</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #f9f9f9;
+      padding: 20px;
+    }
+    h2 {
+      margin-bottom: 16px;
+    }
+    .material-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .material-card {
+      background: white;
+      border: 1px solid #ccc;
+      padding: 16px;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    .context-menu {
+      position: absolute;
+      background: white;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      list-style: none;
+      padding: 5px 0;
+      margin: 0;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+      z-index: 999;
+    }
+    .context-menu li {
+      padding: 8px 16px;
+      cursor: pointer;
+    }
+    .context-menu li:hover {
+      background-color: #f0f0f0;
+    }
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+  <h2>📦 Malzeme Listesi</h2>
+  <div class="material-list" id="materialList"></div>
+  <ul id="contextMenu" class="context-menu hidden"></ul>
+
+  <!-- Modal -->
+  <div id="materialModal" class="hidden" style="position:fixed; top:10%; left:50%; transform:translateX(-50%); background:#fff; border:1px solid #ccc; padding:20px; width:400px; box-shadow:0 4px 12px rgba(0,0,0,0.2); border-radius:10px; z-index:1000;">
+    <h3>Yeni Malzeme Ekle</h3>
+    <input id="mat-name" placeholder="Üürün Adı"><br><br>
+    <input id="mat-code" placeholder="Stok Kodu"><br><br>
+    <input id="mat-cycle" placeholder="Çevrim Süreci"><br><br>
+    <select id="mat-warehouse"></select><br><br>
+    <select id="mat-unit">
+      <option value="gram">gram</option>
+      <option value="adet">adet</option>
+      <option value="litre">litre</option>
+    </select><br><br>
+    <input id="mat-qty" type="number" placeholder="Miktar"><br><br>
+    <input id="mat-cost" type="number" placeholder="Maliyet"><br><br>
+    <button onclick="saveMaterial()">💾 Kaydet</button>
+    <button onclick="closeModal()">❌ İptal</button>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import {
+      getFirestore, collection, addDoc, getDocs, Timestamp
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyD4MPM2fvkTXeOWG12g-wV_s3eG4SkBWS0",
+      authDomain: "poleroyuncak.firebaseapp.com",
+      projectId: "poleroyuncak",
+      storageBucket: "poleroyuncak.firebasestorage.app",
+      messagingSenderId: "473844630811",
+      appId: "1:473844630811:web:bd89bb7d85c7b17ea03fbe",
+      measurementId: "G-CV6WKBTJ3V"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    const list = document.getElementById("materialList");
+    const contextMenu = document.getElementById("contextMenu");
+    let selectedMaterial = null;
+
+    document.addEventListener("contextmenu", e => {
+      e.preventDefault();
+      const isMaterial = e.target.closest(".material-card");
+      selectedMaterial = isMaterial;
+      contextMenu.innerHTML = "";
+
+      if (isMaterial) {
+        const li = document.createElement("li");
+        li.textContent = "Ambar Hareketleri";
+        li.onclick = () => alert("Burada hareketler listelenecek (devam edecek).");
+        contextMenu.appendChild(li);
+      } else {
+        const li = document.createElement("li");
+        li.textContent = "Malzeme Ekle";
+        li.onclick = () => showModal();
+        contextMenu.appendChild(li);
+      }
+
+      contextMenu.style.top = `${e.pageY}px`;
+      contextMenu.style.left = `${e.pageX}px`;
+      contextMenu.classList.remove("hidden");
+    });
+
+    document.addEventListener("click", () => {
+      contextMenu.classList.add("hidden");
+    });
+
+    function showModal() {
+      document.getElementById("materialModal").classList.remove("hidden");
+    }
+
+    function closeModal() {
+      document.getElementById("materialModal").classList.add("hidden");
+    }
+
+    async function loadWarehousesToSelect() {
+      const select = document.getElementById("mat-warehouse");
+      select.innerHTML = "";
+      const snapshot = await getDocs(collection(db, "warehouses"));
+      snapshot.forEach(doc => {
+        const opt = document.createElement("option");
+        opt.value = doc.data().name;
+        opt.textContent = doc.data().name;
+        select.appendChild(opt);
+      });
+    }
+
+    async function loadMaterials() {
+      list.innerHTML = "";
+      const snapshot = await getDocs(collection(db, "materials"));
+      snapshot.forEach(doc => {
+        const m = doc.data();
+        const div = document.createElement("div");
+        div.className = "material-card";
+        div.innerHTML = `<strong>${m.name}</strong> (${m.unit}) - ${m.stock_amount} adet<br><em>${m.warehouse}</em>`;
+        list.appendChild(div);
+      });
+    }
+
+    async function saveMaterial() {
+      const data = {
+        name: document.getElementById("mat-name").value,
+        stock_code: document.getElementById("mat-code").value,
+        cycle_time: document.getElementById("mat-cycle").value,
+        warehouse: document.getElementById("mat-warehouse").value,
+        unit: document.getElementById("mat-unit").value,
+        stock_amount: parseFloat(document.getElementById("mat-qty").value),
+        cost: parseFloat(document.getElementById("mat-cost").value),
+        created_at: Timestamp.now(),
+        updated_at: Timestamp.now()
+      };
+
+      await addDoc(collection(db, "materials"), data);
+      closeModal();
+      loadMaterials();
+    }
+
+    loadMaterials();
+    loadWarehousesToSelect();
+  </script>
+</body>
+</html>
