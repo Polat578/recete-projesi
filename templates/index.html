@@ -2,120 +2,55 @@
 <html lang="tr">
 <head>
   <meta charset="UTF-8">
-  <title>Üretim Takip Paneli</title>
+  <title>Ambar Yönetimi</title>
   <style>
     body {
       font-family: Arial, sans-serif;
-      margin: 0;
+      padding: 20px;
+    }
+    ul {
       padding: 0;
-      background: #f2f2f2;
     }
-    header {
-      background-color: #3b82f6;
-      color: white;
-      padding: 20px;
-      text-align: center;
-      position: relative;
-    }
-    #back-button {
-      position: absolute;
-      top: 20px;
-      left: 20px;
-      background: white;
-      color: #3b82f6;
-      border: 1px solid #3b82f6;
-      padding: 5px 12px;
-      border-radius: 6px;
-      cursor: pointer;
-      font-weight: bold;
-    }
-    .hidden {
-      display: none;
-    }
-    .dashboard {
-      display: flex;
-      justify-content: center;
-      gap: 20px;
-      padding: 20px;
-      flex-wrap: wrap;
-    }
-    .widget {
-      background: white;
-      padding: 40px;
-      border-radius: 12px;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-      cursor: pointer;
-      font-size: 1.2rem;
-      text-align: center;
-      transition: transform 0.2s ease;
-      min-width: 200px;
-    }
-    .widget:hover {
-      transform: scale(1.05);
-    }
-    #content-area {
-      margin: 20px auto;
-      width: 90%;
-      background: white;
-      padding: 20px;
-      border-radius: 8px;
-      min-height: 300px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.05);
-      position: relative;
-    }
-    ul#context-menu {
-      position: absolute;
-      background: white;
-      border: 1px solid #ccc;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-      padding: 0;
+    li {
       list-style: none;
-      margin: 0;
+      border-bottom: 1px solid #ccc;
+      padding: 8px;
+      cursor: pointer;
+    }
+    #context-menu {
+      position: absolute;
+      background: #fff;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      padding: 5px 0;
+      display: none;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.15);
       z-index: 1000;
     }
-    ul#context-menu li {
-      padding: 10px 20px;
+    #context-menu li {
+      padding: 6px 16px;
       cursor: pointer;
     }
-    ul#context-menu li:hover {
-      background-color: #f0f0f0;
-    }
-    li.ambar-item {
-      border-bottom: 1px solid #ddd;
-      padding: 6px;
+    #context-menu li:hover {
+      background-color: #eee;
     }
   </style>
 </head>
 <body>
-  <header>
-    <button id="back-button" onclick="goBack()" class="hidden">⬅ Geri</button>
-    <h1>Üretim Takip Paneli</h1>
-  </header>
+  <h2>📦 Ambarlar</h2>
+  <ul id="warehouseList" oncontextmenu="showContextMenu(event)"></ul>
 
-  <main>
-    <div class="dashboard" id="widget-container">
-      <div class="widget" onclick="loadSection('materials')">📦 Malzemelerim</div>
-      <div class="widget" onclick="loadSection('recipes')">📋 Reçetelerim</div>
-      <div class="widget" onclick="loadSection('orders')">🏭 Üretim Emirlerim</div>
-      <div class="widget" onclick="loadSection('warehouses')">🏢 Ambarlar</div>
-    </div>
-
-    <section id="content-area" oncontextmenu="return showContextMenu(event)">
-      <!-- İçerik buraya yüklenecek -->
-    </section>
-  </main>
-
-  <ul id="context-menu" class="hidden"></ul>
+  <div id="context-menu">
+    <ul>
+      <li onclick="addWarehouse()">➕ Ambar Ekle</li>
+      <li onclick="editWarehouse()">✏️ Ambarı Düzenle</li>
+    </ul>
+  </div>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
     import {
-      getFirestore,
-      collection,
-      getDocs,
-      addDoc,
-      updateDoc,
-      doc
+      getFirestore, collection, addDoc, getDocs, updateDoc, doc
     } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
     const firebaseConfig = {
@@ -130,78 +65,52 @@
 
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
+    const listEl = document.getElementById("warehouseList");
+    let selectedDocId = null;
 
-    let currentSection = '';
-    let clickedWarehouseId = null;
+    async function listWarehouses() {
+      listEl.innerHTML = "";
+      const snapshot = await getDocs(collection(db, "warehouses"));
+      snapshot.forEach((docSnap) => {
+        const li = document.createElement("li");
+        li.textContent = docSnap.data().name || "🛑 isimsiz";
+        li.dataset.id = docSnap.id;
+        li.addEventListener("contextmenu", (e) => {
+          selectedDocId = docSnap.id;
+        });
+        listEl.appendChild(li);
+      });
+    }
 
-    window.loadSection = async function (section) {
-      currentSection = section;
-      document.getElementById("widget-container").style.display = "none";
-      document.getElementById("back-button").classList.remove("hidden");
-      const content = document.getElementById("content-area");
-
-      if (section === "warehouses") {
-        const snapshot = await getDocs(collection(db, "warehouses"));
-        content.innerHTML = `<h2>🏢 Ambarlar</h2><ul>${snapshot.docs.map(doc => `<li class="ambar-item" data-id="${doc.id}">${doc.data().name}</li>`).join('')}</ul>`;
-      } else {
-        content.innerHTML = `<p>📌 Bu bölüm henüz hazır değil.</p>`;
-      }
-    };
-
-    window.goBack = function () {
-      document.getElementById("widget-container").style.display = "flex";
-      document.getElementById("back-button").classList.add("hidden");
-      document.getElementById("content-area").innerHTML = '';
-      hideContextMenu();
-      currentSection = '';
-    };
-
-    document.addEventListener("click", hideContextMenu);
-
-    function showContextMenu(event) {
-      if (currentSection !== "warehouses") return true;
-
-      event.preventDefault();
-      hideContextMenu();
+    window.showContextMenu = function (e) {
+      e.preventDefault();
       const menu = document.getElementById("context-menu");
+      menu.style.top = `${e.pageY}px`;
+      menu.style.left = `${e.pageX}px`;
+      menu.style.display = "block";
+    };
 
-      const isWarehouseItem = event.target.classList.contains("ambar-item");
-      const warehouseId = event.target.dataset.id;
-      clickedWarehouseId = warehouseId || null;
-
-      menu.innerHTML = "";
-
-      if (isWarehouseItem) {
-        menu.innerHTML = `<li onclick="renameWarehouse()">Ambarı Düzenle</li>`;
-      } else {
-        menu.innerHTML = `<li onclick="addWarehouse()">Yeni Ambar Ekle</li>`;
-      }
-
-      menu.style.top = `${event.pageY}px`;
-      menu.style.left = `${event.pageX}px`;
-      menu.classList.remove("hidden");
-
-      return false;
-    }
-
-    function hideContextMenu() {
-      document.getElementById("context-menu").classList.add("hidden");
-    }
+    window.addEventListener("click", () => {
+      document.getElementById("context-menu").style.display = "none";
+    });
 
     window.addWarehouse = async function () {
       const name = prompt("Yeni ambar adı:");
       if (!name) return;
       await addDoc(collection(db, "warehouses"), { name });
-      loadSection("warehouses");
+      await listWarehouses();
     };
 
-    window.renameWarehouse = async function () {
-      const newName = prompt("Yeni ad:");
-      if (!newName || !clickedWarehouseId) return;
-      const ref = doc(db, "warehouses", clickedWarehouseId);
+    window.editWarehouse = async function () {
+      if (!selectedDocId) return alert("Ambar seçilmedi.");
+      const newName = prompt("Yeni isim:");
+      if (!newName) return;
+      const ref = doc(db, "warehouses", selectedDocId);
       await updateDoc(ref, { name: newName });
-      loadSection("warehouses");
+      await listWarehouses();
     };
+
+    listWarehouses();
   </script>
 </body>
 </html>
