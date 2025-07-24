@@ -5,7 +5,7 @@ import os
 app = Flask(__name__, static_url_path='/static')
 
 # PostgreSQL bağlantısı
-DATABASE_URL = os.environ.get("DATABASE_URL") or "postgresql://poler_postgresql_enes_user:e1Sfai0NvhmznIh4nmSWMMnGU4wOirUj@dpg-d209tdumcj7s73athnp0-a:5432/poler-postgresql-enes"
+DATABASE_URL = os.environ.get("DATABASE_URL") or "postgresql://kendi_urlin"
 
 def get_connection():
     return psycopg2.connect(DATABASE_URL)
@@ -13,7 +13,6 @@ def get_connection():
 @app.route('/')
 def index():
     return render_template("index.html")
-
 
 # 🔹 Veritabanı Tablolarını Oluştur
 @app.route('/init-db')
@@ -43,6 +42,7 @@ def init_db():
         """)
 
         conn.commit()
+        cur.close()
         conn.close()
         return "✅ Veritabanı tabloları oluşturuldu"
     except Exception as e:
@@ -57,6 +57,7 @@ def get_warehouses():
         cur = conn.cursor()
         cur.execute("SELECT id, name FROM warehouses")
         rows = cur.fetchall()
+        cur.close()
         conn.close()
         return jsonify([{"id": row[0], "name": row[1]} for row in rows])
     except Exception as e:
@@ -76,11 +77,12 @@ def add_warehouse():
         cur = conn.cursor()
         cur.execute("INSERT INTO warehouses (name) VALUES (%s)", (data["name"],))
         conn.commit()
+        cur.close()
         conn.close()
-        return jsonify({"message": "Ambar eklendi"}), 201
+        return jsonify({"message": "Ambar başarıyla eklendi."}), 201
     except Exception as e:
         print(f"❌ /warehouses POST hatası: {e}")
-        return jsonify({"error": "Bir hata oluştu"}), 500
+        return jsonify({"error": "Ambar eklenemedi"}), 500
 
 
 # 🔹 MALZEME GET
@@ -91,6 +93,7 @@ def get_materials():
         cur = conn.cursor()
         cur.execute("SELECT id, name, unit, stock_amount, cycle_time, type, warehouse, stock_code FROM materials")
         rows = cur.fetchall()
+        cur.close()
         conn.close()
         result = []
         for row in rows:
@@ -130,6 +133,7 @@ def add_material():
             data.get("stock_code")
         ))
         conn.commit()
+        cur.close()
         conn.close()
         return jsonify({"message": "Malzeme eklendi"}), 201
     except Exception as e:
