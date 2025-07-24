@@ -61,6 +61,28 @@
       border-radius: 8px;
       min-height: 300px;
       box-shadow: 0 0 10px rgba(0,0,0,0.05);
+      position: relative;
+    }
+    ul#context-menu {
+      position: absolute;
+      background: white;
+      border: 1px solid #ccc;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      padding: 0;
+      list-style: none;
+      margin: 0;
+      z-index: 1000;
+    }
+    ul#context-menu li {
+      padding: 10px 20px;
+      cursor: pointer;
+    }
+    ul#context-menu li:hover {
+      background-color: #f0f0f0;
+    }
+    li.ambar-item {
+      border-bottom: 1px solid #ddd;
+      padding: 6px;
     }
   </style>
 </head>
@@ -78,17 +100,22 @@
       <div class="widget" onclick="loadSection('warehouses')">🏢 Ambarlar</div>
     </div>
 
-    <section id="content-area">
+    <section id="content-area" oncontextmenu="return showContextMenu(event)">
       <!-- İçerik buraya yüklenecek -->
     </section>
   </main>
+
+  <ul id="context-menu" class="hidden"></ul>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
     import {
       getFirestore,
       collection,
-      getDocs
+      getDocs,
+      addDoc,
+      updateDoc,
+      doc
     } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
     const firebaseConfig = {
@@ -104,32 +131,76 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    // 🔁 Widget tıklamaları için global fonksiyon
+    let currentSection = '';
+    let clickedWarehouseId = null;
+
     window.loadSection = async function (section) {
-      console.log("Tıklanan bölüm:", section);
+      currentSection = section;
       document.getElementById("widget-container").style.display = "none";
       document.getElementById("back-button").classList.remove("hidden");
       const content = document.getElementById("content-area");
 
       if (section === "warehouses") {
         const snapshot = await getDocs(collection(db, "warehouses"));
-        content.innerHTML = `<h2>🏢 Ambarlar</h2><ul>${snapshot.docs.map(doc => `<li>${doc.data().name}</li>`).join('')}</ul>`;
-      } else if (section === "materials") {
-        const snapshot = await getDocs(collection(db, "materials"));
-        content.innerHTML = `<h2>📦 Malzemeler</h2><ul>${snapshot.docs.map(doc => {
-          const d = doc.data();
-          return `<li>${d.name} - ${d.unit} - ${d.stock_amount}</li>`;
-        }).join('')}</ul>`;
+        content.innerHTML = `<h2>🏢 Ambarlar</h2><ul>${snapshot.docs.map(doc => `<li class="ambar-item" data-id="${doc.id}">${doc.data().name}</li>`).join('')}</ul>`;
       } else {
         content.innerHTML = `<p>📌 Bu bölüm henüz hazır değil.</p>`;
       }
     };
 
-    // ⬅ Geri butonu fonksiyonu
     window.goBack = function () {
       document.getElementById("widget-container").style.display = "flex";
       document.getElementById("back-button").classList.add("hidden");
       document.getElementById("content-area").innerHTML = '';
+      hideContextMenu();
+      currentSection = '';
+    };
+
+    document.addEventListener("click", hideContextMenu);
+
+    function showContextMenu(event) {
+      if (currentSection !== "warehouses") return true;
+
+      event.preventDefault();
+      hideContextMenu();
+      const menu = document.getElementById("context-menu");
+
+      const isWarehouseItem = event.target.classList.contains("ambar-item");
+      const warehouseId = event.target.dataset.id;
+      clickedWarehouseId = warehouseId || null;
+
+      menu.innerHTML = "";
+
+      if (isWarehouseItem) {
+        menu.innerHTML = `<li onclick="renameWarehouse()">Ambarı Düzenle</li>`;
+      } else {
+        menu.innerHTML = `<li onclick="addWarehouse()">Yeni Ambar Ekle</li>`;
+      }
+
+      menu.style.top = `${event.pageY}px`;
+      menu.style.left = `${event.pageX}px`;
+      menu.classList.remove("hidden");
+
+      return false;
+    }
+
+    function hideContextMenu() {
+      document.getElementById("context-menu").classList.add("hidden");
+    }
+
+    window.addWarehouse = async function () {
+      const name = prompt("Yeni ambar adı:");
+      if (!name) return;
+      await addDoc(collection(db, "warehouses"), { name });
+      loadSection("warehouses");
+    };
+
+    window.renameWarehouse = async function () {
+      const newName = prompt("Yeni ad:");
+      if (!newName || !clickedWarehouseId) return;
+      const ref = doc(db, "warehouses", clickedWarehouseId);
+      await updateDoc(ref, { name: newName });
+      loadSection("warehouses");
     };
   </script>
 </body>
