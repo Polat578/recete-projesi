@@ -1,18 +1,61 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-  <meta charset="UTF-8" />
-  <title>Ambar Yönetimi</title>
+  <meta charset="UTF-8">
+  <title>Ambar Paneli</title>
 </head>
 <body>
-  <h1>📦 Ambar Ekle</h1>
-  <input type="text" id="warehouseName" placeholder="Ambar adı girin" />
+  <h1>📦 Ambarlar</h1>
+  <input type="text" id="warehouseName" placeholder="Ambar adı girin">
   <button id="addWarehouseBtn">Ekle</button>
-
-  <h2>📋 Ambar Listesi</h2>
   <ul id="warehouseList"></ul>
 
-  <!-- JavaScript modülü -->
-  <script type="module" src="/static/script.js"></script>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import {
+      getFirestore,
+      collection,
+      addDoc,
+      getDocs
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyD4MPM2fvkTXeOWG12g-wV_s3eG4SkBWS0",
+      authDomain: "poleroyuncak.firebaseapp.com",
+      projectId: "poleroyuncak",
+      storageBucket: "poleroyuncak.firebasestorage.app",
+      messagingSenderId: "473844630811",
+      appId: "1:473844630811:web:bd89bb7d85c7b17ea03fbe",
+      measurementId: "G-CV6WKBTJ3V"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    const nameInput = document.getElementById("warehouseName");
+    const addBtn = document.getElementById("addWarehouseBtn");
+    const listEl = document.getElementById("warehouseList");
+
+    addBtn.addEventListener("click", async () => {
+      const name = nameInput.value.trim();
+      if (!name) return alert("Ambar adı boş olamaz");
+      await addDoc(collection(db, "warehouses"), { name });
+      nameInput.value = "";
+      await getWarehouses();
+    });
+
+    async function getWarehouses() {
+      listEl.innerHTML = "";
+      const snapshot = await getDocs(collection(db, "warehouses"));
+      snapshot.forEach((doc) => {
+        const li = document.createElement("li");
+        li.textContent = doc.data().name;
+        listEl.appendChild(li);
+      });
+    }
+
+    // Sayfa yüklendiğinde listele
+    getWarehouses();
+  </script>
 </body>
 </html>
