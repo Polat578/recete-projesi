@@ -5,7 +5,8 @@ import os
 app = Flask(__name__, static_url_path='/static')
 
 # PostgreSQL bağlantısı
-DATABASE_URL = os.environ.get("DATABASE_URL") or "postgresql://kendi_urlin"
+DATABASE_URL = "postgresql://poler_postgresql_enes_user:e1Sfai0NvhmznIh4nmSWMMnGU4wOirUj@dpg-d209tdumcj7s73athnp0-a.oregon-postgres.render.com/poler_postgresql_enes"
+
 
 def get_connection():
     return psycopg2.connect(DATABASE_URL)
