@@ -1,16 +1,18 @@
-from flask import Flask, send_from_directory, render_template
+from flask import Flask, render_template
 
-app = Flask(__name__, static_url_path='/static', static_folder='static', template_folder='templates')
+app = Flask(__name__)
 
-# Ana sayfa (varsa)
 @app.route('/')
 def index():
-    return render_template("index.html")  # Veya send_from_directory() ile değiştirebilirsin
+    return render_template("index.html")
 
-# Firebase tabanlı ambar sayfası
-@app.route('/firebase-warehouses')
-def firebase_warehouses():
-    return send_from_directory(app.static_folder, 'warehouses.html')
+@app.route('/warehouses')
+def warehouses():
+    return render_template("warehouses.html")
+
+@app.route('/materials')
+def materials():
+    return render_template("materials.html")
 
 if __name__ == '__main__':
     app.run(debug=True)
