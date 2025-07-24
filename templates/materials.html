@@ -2,76 +2,84 @@
 <html lang="tr">
 <head>
   <meta charset="UTF-8">
-  <title>Malzemeler</title>
+  <title>📦 Malzemeler</title>
   <style>
-    body {
-      font-family: 'Segoe UI', sans-serif;
-      background: #f9f9f9;
-      padding: 20px;
-    }
-    h2 {
-      margin-bottom: 16px;
-    }
-    .material-list {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
-    .material-card {
-      background: white;
-      border: 1px solid #ccc;
-      padding: 16px;
-      border-radius: 8px;
-      cursor: pointer;
-    }
-    .context-menu {
+    body { font-family: sans-serif; padding: 20px; background: #f7f7f7; }
+    h1 { text-align: center; }
+    .material { padding: 10px; background: #fff; margin: 8px 0; border-radius: 6px; cursor: context-menu; }
+    .material:hover { background: #f0f0f0; }
+    hr { border: 0; border-top: 1px solid #ccc; }
+
+    #context-menu {
       position: absolute;
+      z-index: 999;
+      display: none;
       background: white;
       border: 1px solid #ccc;
-      border-radius: 6px;
+      border-radius: 5px;
       list-style: none;
       padding: 5px 0;
-      margin: 0;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.15);
-      z-index: 999;
     }
-    .context-menu li {
+    #context-menu li {
       padding: 8px 16px;
       cursor: pointer;
     }
-    .context-menu li:hover {
-      background-color: #f0f0f0;
+    #context-menu li:hover {
+      background-color: #eee;
     }
-    .hidden { display: none; }
+
+    /* Modal */
+    #modal {
+      display: none;
+      position: fixed;
+      z-index: 1000;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.3);
+      width: 400px;
+    }
+    #modal input, #modal select {
+      width: 100%; padding: 8px; margin: 5px 0;
+    }
   </style>
 </head>
 <body>
-  <h2>📦 Malzeme Listesi</h2>
-  <div class="material-list" id="materialList"></div>
-  <ul id="contextMenu" class="context-menu hidden"></ul>
 
-  <!-- Modal -->
-  <div id="materialModal" class="hidden" style="position:fixed; top:10%; left:50%; transform:translateX(-50%); background:#fff; border:1px solid #ccc; padding:20px; width:400px; box-shadow:0 4px 12px rgba(0,0,0,0.2); border-radius:10px; z-index:1000;">
-    <h3>Yeni Malzeme Ekle</h3>
-    <input id="mat-name" placeholder="Üürün Adı"><br><br>
-    <input id="mat-code" placeholder="Stok Kodu"><br><br>
-    <input id="mat-cycle" placeholder="Çevrim Süreci"><br><br>
-    <select id="mat-warehouse"></select><br><br>
+  <h1>📦 Malzeme Listesi</h1>
+  <div id="materialList"></div>
+
+  <ul id="context-menu">
+    <li onclick="openModal()">Malzeme Ekle</li>
+    <li onclick="showMovements()">Ambar Hareketleri</li>
+  </ul>
+
+  <div id="modal">
+    <h3>Yeni Malzeme</h3>
+    <input id="mat-name" placeholder="Ürün Adı">
+    <input id="mat-code" placeholder="Stok Kodu">
+    <input id="mat-cycle" placeholder="Çevrim Süresi">
+    <select id="mat-warehouse"></select>
     <select id="mat-unit">
-      <option value="gram">gram</option>
-      <option value="adet">adet</option>
-      <option value="litre">litre</option>
-    </select><br><br>
-    <input id="mat-qty" type="number" placeholder="Miktar"><br><br>
-    <input id="mat-cost" type="number" placeholder="Maliyet"><br><br>
+      <option value="adet">Adet</option>
+      <option value="gram">Gram</option>
+      <option value="litre">Litre</option>
+    </select>
+    <input id="mat-qty" type="number" placeholder="Miktar">
+    <input id="mat-cost" type="number" placeholder="Maliyet">
+    <br><br>
     <button onclick="saveMaterial()">💾 Kaydet</button>
-    <button onclick="closeModal()">❌ İptal</button>
+    <button onclick="closeModal()">❌ Kapat</button>
   </div>
 
+  <!-- Firebase -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
     import {
-      getFirestore, collection, addDoc, getDocs, Timestamp
+      getFirestore, collection, addDoc, getDocs,
+      Timestamp
     } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
     const firebaseConfig = {
@@ -87,67 +95,27 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    const list = document.getElementById("materialList");
-    const contextMenu = document.getElementById("contextMenu");
-    let selectedMaterial = null;
+    const materialList = document.getElementById("materialList");
+    const contextMenu = document.getElementById("context-menu");
 
-    document.addEventListener("contextmenu", e => {
+    document.addEventListener("click", () => contextMenu.style.display = "none");
+    document.addEventListener("contextmenu", (e) => {
       e.preventDefault();
-      const isMaterial = e.target.closest(".material-card");
-      selectedMaterial = isMaterial;
-      contextMenu.innerHTML = "";
-
-      if (isMaterial) {
-        const li = document.createElement("li");
-        li.textContent = "Ambar Hareketleri";
-        li.onclick = () => alert("Burada hareketler listelenecek (devam edecek).");
-        contextMenu.appendChild(li);
-      } else {
-        const li = document.createElement("li");
-        li.textContent = "Malzeme Ekle";
-        li.onclick = () => showModal();
-        contextMenu.appendChild(li);
-      }
-
+      contextMenu.style.display = "block";
       contextMenu.style.top = `${e.pageY}px`;
       contextMenu.style.left = `${e.pageX}px`;
-      contextMenu.classList.remove("hidden");
     });
 
-    document.addEventListener("click", () => {
-      contextMenu.classList.add("hidden");
-    });
+    function showMovements() {
+      alert("🕓 Bu özellik yakında aktif edilecek.");
+    }
 
-    function showModal() {
-      document.getElementById("materialModal").classList.remove("hidden");
+    function openModal() {
+      document.getElementById("modal").style.display = "block";
     }
 
     function closeModal() {
-      document.getElementById("materialModal").classList.add("hidden");
-    }
-
-    async function loadWarehousesToSelect() {
-      const select = document.getElementById("mat-warehouse");
-      select.innerHTML = "";
-      const snapshot = await getDocs(collection(db, "warehouses"));
-      snapshot.forEach(doc => {
-        const opt = document.createElement("option");
-        opt.value = doc.data().name;
-        opt.textContent = doc.data().name;
-        select.appendChild(opt);
-      });
-    }
-
-    async function loadMaterials() {
-      list.innerHTML = "";
-      const snapshot = await getDocs(collection(db, "materials"));
-      snapshot.forEach(doc => {
-        const m = doc.data();
-        const div = document.createElement("div");
-        div.className = "material-card";
-        div.innerHTML = `<strong>${m.name}</strong> (${m.unit}) - ${m.stock_amount} adet<br><em>${m.warehouse}</em>`;
-        list.appendChild(div);
-      });
+      document.getElementById("modal").style.display = "none";
     }
 
     async function saveMaterial() {
@@ -168,8 +136,36 @@
       loadMaterials();
     }
 
+    async function loadMaterials() {
+      materialList.innerHTML = "⏳ Yükleniyor...";
+      const snapshot = await getDocs(collection(db, "materials"));
+      materialList.innerHTML = "";
+      snapshot.forEach(doc => {
+        const m = doc.data();
+        const div = document.createElement("div");
+        div.className = "material";
+        div.textContent = `🔹 ${m.name} (${m.stock_code}) – ${m.stock_amount} ${m.unit}`;
+        materialList.appendChild(div);
+        const hr = document.createElement("hr");
+        materialList.appendChild(hr);
+      });
+    }
+
+    async function loadWarehouses() {
+      const warehouseSelect = document.getElementById("mat-warehouse");
+      const snapshot = await getDocs(collection(db, "warehouses"));
+      warehouseSelect.innerHTML = "<option value=''>Ambar Seç</option>";
+      snapshot.forEach(doc => {
+        const name = doc.data().name;
+        const opt = document.createElement("option");
+        opt.value = name;
+        opt.textContent = name;
+        warehouseSelect.appendChild(opt);
+      });
+    }
+
     loadMaterials();
-    loadWarehousesToSelect();
+    loadWarehouses();
   </script>
 </body>
 </html>
