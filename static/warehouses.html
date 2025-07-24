@@ -1,17 +1,13 @@
-<h2>🏢 Ambarlar</h2>
-<ul id="warehouseList" oncontextmenu="showContextMenu(event)"></ul>
-
-<div id="context-menu" class="context-menu hidden">
-  <ul style="margin: 0; padding: 0; list-style: none;">
-    <li onclick="addWarehouse()">➕ Ambar Ekle</li>
-    <li onclick="editWarehouse()">✏️ Ambarı Düzenle</li>
-  </ul>
-</div>
+<h2>🏢 YARRAKbarlar</h2>
+<ul id="warehouseList" style="list-style: none; padding: 0;"></ul>
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
   import {
-    getFirestore, collection, addDoc, getDocs, updateDoc, doc
+    getFirestore,
+    collection,
+    addDoc,
+    getDocs
   } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
   const firebaseConfig = {
@@ -26,53 +22,20 @@
 
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
-  const listEl = document.getElementById("warehouseList");
-  let selectedDocId = null;
 
-  async function listWarehouses() {
+  const listEl = document.getElementById("warehouseList");
+
+  async function loadWarehouses() {
     listEl.innerHTML = "";
     const snapshot = await getDocs(collection(db, "warehouses"));
-    snapshot.forEach((docSnap) => {
+    snapshot.forEach((doc) => {
       const li = document.createElement("li");
-      li.textContent = docSnap.data().name || "🛑 isimsiz";
-      li.dataset.id = docSnap.id;
+      li.textContent = doc.data().name || "(İsimsiz)";
+      li.style.padding = "8px 12px";
       li.style.borderBottom = "1px solid #ddd";
-      li.style.padding = "6px";
-      li.style.cursor = "pointer";
-      li.addEventListener("contextmenu", (e) => {
-        selectedDocId = docSnap.id;
-      });
       listEl.appendChild(li);
     });
   }
 
-  window.showContextMenu = function (e) {
-    e.preventDefault();
-    const menu = document.getElementById("context-menu");
-    menu.classList.remove("hidden");
-    menu.style.top = `${e.pageY}px`;
-    menu.style.left = `${e.pageX}px`;
-  };
-
-  window.addEventListener("click", () => {
-    document.getElementById("context-menu").classList.add("hidden");
-  });
-
-  window.addWarehouse = async function () {
-    const name = prompt("Yeni ambar adı:");
-    if (!name) return;
-    await addDoc(collection(db, "warehouses"), { name });
-    await listWarehouses();
-  };
-
-  window.editWarehouse = async function () {
-    if (!selectedDocId) return alert("Ambar seçilmedi.");
-    const newName = prompt("Yeni isim:");
-    if (!newName) return;
-    const ref = doc(db, "warehouses", selectedDocId);
-    await updateDoc(ref, { name: newName });
-    await listWarehouses();
-  };
-
-  listWarehouses();
+  loadWarehouses();
 </script>
