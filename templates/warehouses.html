@@ -1,42 +1,173 @@
-<h2>🏢 YARRAKbarlar</h2>
-<ul id="warehouseList" style="list-style: none; padding: 0;"></ul>
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <title>Ambar Yönetimi</title>
+  <style>
+    body {
+      font-family: Arial;
+      background: #f4f4f4;
+      margin: 0;
+      padding: 20px;
+    }
 
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-  import {
-    getFirestore,
-    collection,
-    addDoc,
-    getDocs
-  } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    h2 {
+      color: #333;
+    }
 
-  const firebaseConfig = {
-    apiKey: "AIzaSyD4MPM2fvkTXeOWG12g-wV_s3eG4SkBWS0",
-    authDomain: "poleroyuncak.firebaseapp.com",
-    projectId: "poleroyuncak",
-    storageBucket: "poleroyuncak.firebasestorage.app",
-    messagingSenderId: "473844630811",
-    appId: "1:473844630811:web:bd89bb7d85c7b17ea03fbe",
-    measurementId: "G-CV6WKBTJ3V"
-  };
+    ul {
+      list-style: none;
+      padding: 0;
+    }
 
-  const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app);
+    li.ambar {
+      background: white;
+      margin-bottom: 10px;
+      padding: 15px;
+      border-radius: 8px;
+      border: 1px solid #ddd;
+      position: relative;
+    }
 
-  const listEl = document.getElementById("warehouseList");
+    .context-menu {
+      position: absolute;
+      background: white;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      list-style: none;
+      padding: 5px 0;
+      margin: 0;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+      z-index: 999;
+    }
 
-  async function loadWarehouses() {
-    listEl.innerHTML = "";
-    const snapshot = await getDocs(collection(db, "warehouses"));
-    snapshot.forEach((doc) => {
-      const li = document.createElement("li");
-      li.textContent = doc.data().name || "(İsimsiz)";
-      li.style.padding = "8px 12px";
-      li.style.borderBottom = "1px solid #ddd";
-      listEl.appendChild(li);
+    .context-menu li {
+      padding: 8px 16px;
+      cursor: pointer;
+    }
+
+    .context-menu li:hover {
+      background-color: #f0f0f0;
+    }
+  </style>
+</head>
+<body>
+  <h2>📦 Ambarlar</h2>
+  <ul id="warehouseList"></ul>
+
+  <!-- Sağ tık menüsü -->
+  <ul id="contextMenu" class="context-menu" style="display:none;"></ul>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import {
+      getFirestore,
+      collection,
+      addDoc,
+      getDocs,
+      updateDoc,
+      doc
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyD4MPM2fvkTXeOWG12g-wV_s3eG4SkBWS0",
+      authDomain: "poleroyuncak.firebaseapp.com",
+      projectId: "poleroyuncak",
+      storageBucket: "poleroyuncak.firebasestorage.app",
+      messagingSenderId: "473844630811",
+      appId: "1:473844630811:web:bd89bb7d85c7b17ea03fbe",
+      measurementId: "G-CV6WKBTJ3V"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const listEl = document.getElementById("warehouseList");
+    const contextMenu = document.getElementById("contextMenu");
+
+    let currentRightClicked = null;
+
+    async function loadWarehouses() {
+      listEl.innerHTML = "";
+      const snapshot = await getDocs(collection(db, "warehouses"));
+      snapshot.forEach((docSnap) => {
+        const data = docSnap.data();
+        const li = document.createElement("li");
+        li.className = "ambar";
+        li.textContent = `${data.name} - ${data.person} (${data.phone})`;
+        li.dataset.id = docSnap.id;
+        li.dataset.raw = JSON.stringify(data);
+        listEl.appendChild(li);
+      });
+    }
+
+    document.body.addEventListener("contextmenu", function (e) {
+      e.preventDefault();
+      contextMenu.innerHTML = "";
+
+      const target = e.target.closest("li.ambar");
+      currentRightClicked = target;
+
+      if (target) {
+        // Sağ tıklanan şey bir ambar
+        const edit = document.createElement("li");
+        edit.textContent = "Ambarı Düzenle";
+        edit.onclick = () => editWarehouse(JSON.parse(target.dataset.raw), target.dataset.id);
+        contextMenu.appendChild(edit);
+      } else {
+        // Boşlukta sağ tıklandı
+        const add = document.createElement("li");
+        add.textContent = "Ambar Ekle";
+        add.onclick = addWarehouse;
+        contextMenu.appendChild(add);
+      }
+
+      contextMenu.style.top = e.pageY + "px";
+      contextMenu.style.left = e.pageX + "px";
+      contextMenu.style.display = "block";
     });
-  }
 
-  loadWarehouses();
-</script>
+    document.addEventListener("click", () => {
+      contextMenu.style.display = "none";
+    });
 
+    async function addWarehouse() {
+      const name = prompt("Ambar Adı:");
+      const address = prompt("Açık Adresi:");
+      const person = prompt("İlgili Personel Adı:");
+      const phone = prompt("Telefon Numarası:");
+
+      if (!name) return;
+
+      await addDoc(collection(db, "warehouses"), {
+        name,
+        address,
+        person,
+        phone
+      });
+
+      loadWarehouses();
+    }
+
+    async function editWarehouse(data, id) {
+      const name = prompt("Ambar Adı:", data.name);
+      const address = prompt("Açık Adresi:", data.address);
+      const person = prompt("Personel Adı:", data.person);
+      const phone = prompt("Telefon:", data.phone);
+
+      if (!name) return;
+
+      const ref = doc(db, "warehouses", id);
+      await updateDoc(ref, {
+        name,
+        address,
+        person,
+        phone
+      });
+
+      loadWarehouses();
+    }
+
+    loadWarehouses();
+  </script>
+</body>
+</html>
