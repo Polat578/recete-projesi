@@ -62,11 +62,3 @@ async function addWarehouse() {
 // Başlat
 addBtn.addEventListener("click", addWarehouse);
 getWarehouses();
-window.addEventListener("DOMContentLoaded", async () => {
-  try {
-    const docRef = await addDoc(collection(db, "warehouses"), { name: "Test Ambar (otomatik)" });
-    console.log("🔥 Firebase test eklendi:", docRef.id);
-  } catch (err) {
-    console.error("❌ Test eklenemedi:", err);
-  }
-});
