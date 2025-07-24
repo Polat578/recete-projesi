@@ -1,38 +1,69 @@
-<h2>📦 Malzeme Listesi</h2>
-<table border="1" cellpadding="8" cellspacing="0">
-  <thead>
-    <tr>
-      <th>Ad</th>
-      <th>Birim</th>
-      <th>Stok</th>
-      <th>Çevrim</th>
-      <th>Cins</th>
-      <th>Ambar</th>
-      <th>Stok Kodu</th>
-    </tr>
-  </thead>
-  <tbody id="materials-table-body">
-  </tbody>
-</table>
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <title>Malzeme Listesi</title>
+</head>
+<body>
+  <h2>📦 Malzeme Listesi</h2>
+  <table border="1" cellpadding="8" cellspacing="0">
+    <thead>
+      <tr>
+        <th>Ad</th>
+        <th>Birim</th>
+        <th>Stok</th>
+        <th>Çevrim</th>
+        <th>Cins</th>
+        <th>Ambar</th>
+        <th>Stok Kodu</th>
+      </tr>
+    </thead>
+    <tbody id="materials-table-body">
+    </tbody>
+  </table>
 
-<script>
-fetch('/materials')
-  .then(res => res.json())
-  .then(data => {
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import {
+      getFirestore,
+      collection,
+      getDocs
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyD4MPM2fvkTXeOWG12g-wV_s3eG4SkBWS0",
+      authDomain: "poleroyuncak.firebaseapp.com",
+      projectId: "poleroyuncak",
+      storageBucket: "poleroyuncak.firebasestorage.app",
+      messagingSenderId: "473844630811",
+      appId: "1:473844630811:web:bd89bb7d85c7b17ea03fbe",
+      measurementId: "G-CV6WKBTJ3V"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
     const tbody = document.getElementById("materials-table-body");
-    tbody.innerHTML = "";
-    data.forEach(m => {
-      const row = document.createElement("tr");
-      row.innerHTML = `
-        <td>${m.name}</td>
-        <td>${m.unit}</td>
-        <td>${m.stock_amount}</td>
-        <td>${m.cycle_time}</td>
-        <td>${m.type}</td>
-        <td>${m.warehouse}</td>
-        <td>${m.stock_code}</td>
-      `;
-      tbody.appendChild(row);
-    });
-  });
-</script>
+
+    async function getMaterials() {
+      const snapshot = await getDocs(collection(db, "materials"));
+      snapshot.forEach(doc => {
+        const m = doc.data();
+        const row = document.createElement("tr");
+        row.innerHTML = `
+          <td>${m.name || ""}</td>
+          <td>${m.unit || ""}</td>
+          <td>${m.stock_amount || ""}</td>
+          <td>${m.cycle_time || ""}</td>
+          <td>${m.type || ""}</td>
+          <td>${m.warehouse || ""}</td>
+          <td>${m.stock_code || ""}</td>
+        `;
+        tbody.appendChild(row);
+      });
+    }
+
+    getMaterials();
+  </script>
+</body>
+</html>
