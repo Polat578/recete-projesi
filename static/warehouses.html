@@ -1,61 +1,78 @@
-<!DOCTYPE html>
-<html lang="tr">
-<head>
-  <meta charset="UTF-8">
-  <title>Ambar Paneli</title>
-</head>
-<body>
-  <h1>📦 Ambarlar</h1>
-  <input type="text" id="warehouseName" placeholder="Ambar adı girin">
-  <button id="addWarehouseBtn">Ekle</button>
-  <ul id="warehouseList"></ul>
+<h2>🏢 Ambarlar</h2>
+<ul id="warehouseList" oncontextmenu="showContextMenu(event)"></ul>
 
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import {
-      getFirestore,
-      collection,
-      addDoc,
-      getDocs
-    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+<div id="context-menu" class="context-menu hidden">
+  <ul style="margin: 0; padding: 0; list-style: none;">
+    <li onclick="addWarehouse()">➕ Ambar Ekle</li>
+    <li onclick="editWarehouse()">✏️ Ambarı Düzenle</li>
+  </ul>
+</div>
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyD4MPM2fvkTXeOWG12g-wV_s3eG4SkBWS0",
-      authDomain: "poleroyuncak.firebaseapp.com",
-      projectId: "poleroyuncak",
-      storageBucket: "poleroyuncak.firebasestorage.app",
-      messagingSenderId: "473844630811",
-      appId: "1:473844630811:web:bd89bb7d85c7b17ea03fbe",
-      measurementId: "G-CV6WKBTJ3V"
-    };
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import {
+    getFirestore, collection, addDoc, getDocs, updateDoc, doc
+  } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
+  const firebaseConfig = {
+    apiKey: "AIzaSyD4MPM2fvkTXeOWG12g-wV_s3eG4SkBWS0",
+    authDomain: "poleroyuncak.firebaseapp.com",
+    projectId: "poleroyuncak",
+    storageBucket: "poleroyuncak.firebasestorage.app",
+    messagingSenderId: "473844630811",
+    appId: "1:473844630811:web:bd89bb7d85c7b17ea03fbe",
+    measurementId: "G-CV6WKBTJ3V"
+  };
 
-    const nameInput = document.getElementById("warehouseName");
-    const addBtn = document.getElementById("addWarehouseBtn");
-    const listEl = document.getElementById("warehouseList");
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+  const listEl = document.getElementById("warehouseList");
+  let selectedDocId = null;
 
-    addBtn.addEventListener("click", async () => {
-      const name = nameInput.value.trim();
-      if (!name) return alert("Ambar adı boş olamaz");
-      await addDoc(collection(db, "warehouses"), { name });
-      nameInput.value = "";
-      await getWarehouses();
-    });
-
-    async function getWarehouses() {
-      listEl.innerHTML = "";
-      const snapshot = await getDocs(collection(db, "warehouses"));
-      snapshot.forEach((doc) => {
-        const li = document.createElement("li");
-        li.textContent = doc.data().name;
-        listEl.appendChild(li);
+  async function listWarehouses() {
+    listEl.innerHTML = "";
+    const snapshot = await getDocs(collection(db, "warehouses"));
+    snapshot.forEach((docSnap) => {
+      const li = document.createElement("li");
+      li.textContent = docSnap.data().name || "🛑 isimsiz";
+      li.dataset.id = docSnap.id;
+      li.style.borderBottom = "1px solid #ddd";
+      li.style.padding = "6px";
+      li.style.cursor = "pointer";
+      li.addEventListener("contextmenu", (e) => {
+        selectedDocId = docSnap.id;
       });
-    }
+      listEl.appendChild(li);
+    });
+  }
 
-    // Sayfa yüklendiğinde listele
-    getWarehouses();
-  </script>
-</body>
-</html>
+  window.showContextMenu = function (e) {
+    e.preventDefault();
+    const menu = document.getElementById("context-menu");
+    menu.classList.remove("hidden");
+    menu.style.top = `${e.pageY}px`;
+    menu.style.left = `${e.pageX}px`;
+  };
+
+  window.addEventListener("click", () => {
+    document.getElementById("context-menu").classList.add("hidden");
+  });
+
+  window.addWarehouse = async function () {
+    const name = prompt("Yeni ambar adı:");
+    if (!name) return;
+    await addDoc(collection(db, "warehouses"), { name });
+    await listWarehouses();
+  };
+
+  window.editWarehouse = async function () {
+    if (!selectedDocId) return alert("Ambar seçilmedi.");
+    const newName = prompt("Yeni isim:");
+    if (!newName) return;
+    const ref = doc(db, "warehouses", selectedDocId);
+    await updateDoc(ref, { name: newName });
+    await listWarehouses();
+  };
+
+  listWarehouses();
+</script>
