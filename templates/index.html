@@ -3,164 +3,45 @@
 <head>
   <meta charset="UTF-8">
   <title>Üretim Takip Paneli</title>
-  <link rel="stylesheet" href="/static/style.css">
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 0;
-      padding: 0;
-      background: #f2f2f2;
-    }
-    header {
-      background-color: #3b82f6;
-      color: white;
-      padding: 20px;
-      text-align: center;
-      position: relative;
-    }
+    body { font-family: Arial; background: #f2f2f2; margin: 0; }
+    header { background-color: #3b82f6; color: white; padding: 20px; text-align: center; font-size: 1.5em; }
     .dashboard {
       display: flex;
       justify-content: center;
       flex-wrap: wrap;
-      gap: 30px;
-      padding: 40px 20px;
+      gap: 20px;
+      padding: 40px;
     }
     .widget {
+      width: 250px;
+      height: 120px;
       background: white;
-      padding: 40px 50px;
-      border-radius: 20px;
-      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2rem;
+      font-weight: bold;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
       cursor: pointer;
-      font-size: 1.3rem;
-      text-align: center;
-      transition: transform 0.2s ease;
-      min-width: 220px;
+      text-decoration: none;
+      color: black;
+      transition: transform 0.2s;
     }
     .widget:hover {
       transform: scale(1.05);
-    }
-    #back-button {
-      position: absolute;
-      top: 20px;
-      left: 20px;
-      background: white;
-      color: #3b82f6;
-      border: 1px solid #3b82f6;
-      padding: 6px 14px;
-      border-radius: 6px;
-      font-weight: bold;
-      cursor: pointer;
-    }
-    .hidden {
-      display: none;
-    }
-    #content-area {
-      background: white;
-      padding: 30px;
-      margin: 20px auto;
-      width: 90%;
-      max-width: 1200px;
-      min-height: 300px;
-      border-radius: 12px;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-    }
-    .context-menu {
-      position: absolute;
-      background: white;
-      border: 1px solid #ccc;
-      border-radius: 6px;
-      list-style: none;
-      padding: 5px 0;
-      margin: 0;
-      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
-      z-index: 999;
-    }
-    .context-menu li {
-      padding: 8px 16px;
-      cursor: pointer;
-    }
-    .context-menu li:hover {
-      background-color: #f0f0f0;
+      background-color: #f0f8ff;
     }
   </style>
 </head>
 <body>
-  <header>
-    <button id="back-button" onclick="goBack()" class="hidden">⬅ Geri</button>
-    <h1>Üretim Takip Paneli</h1>
-  </header>
-
-  <main>
-    <div class="dashboard" id="widget-container">
-      <div class="widget" onclick="loadSection('materials')">📦 Malzemelerim</div>
-      <div class="widget" onclick="loadSection('recipes')">📋 Reçetelerim</div>
-      <div class="widget" onclick="loadSection('orders')">🏭 Üretim Emirlerim</div>
-      <div class="widget" onclick="loadSection('warehouses')">🏢 Ambarlar</div>
-    </div>
-
-    <section id="content-area" oncontextmenu="return showContextMenu(event)">
-      <!-- Dinamik içerik -->
-    </section>
-  </main>
-
-  <ul id="context-menu" class="context-menu hidden"></ul>
-
-  <script>
-    let currentSection = '';
-
-    function loadSection(section) {
-      currentSection = section;
-      hideContextMenu();
-      document.getElementById("widget-container").style.display = "none";
-      document.getElementById("back-button").classList.remove("hidden");
-
-      fetch(`/static/${section}.html`)
-        .then(res => res.text())
-        .then(html => {
-          document.getElementById("content-area").innerHTML = html;
-        });
-    }
-
-    function showContextMenu(event) {
-      event.preventDefault();
-      const menu = document.getElementById("context-menu");
-      menu.innerHTML = '';
-
-      if (currentSection === 'warehouses') {
-        const isListItem = event.target.tagName === 'LI';
-        menu.innerHTML = isListItem
-          ? `<li onclick="alert('Düzenleme gelecek')">Ambarı Düzenle</li>`
-          : `<li onclick="addWarehouse()">Ambar Ekle</li>`;
-        menu.classList.remove("hidden");
-        menu.style.top = `${event.pageY}px`;
-        menu.style.left = `${event.pageX}px`;
-      }
-
-      return false;
-    }
-
-    function hideContextMenu() {
-      document.getElementById("context-menu").classList.add("hidden");
-    }
-
-    document.addEventListener("click", hideContextMenu);
-
-    function goBack() {
-      document.getElementById("widget-container").style.display = "flex";
-      document.getElementById("back-button").classList.add("hidden");
-      document.getElementById("content-area").innerHTML = '';
-      currentSection = '';
-    }
-
-    function addWarehouse() {
-      const name = prompt("Yeni ambar adı:");
-      if (!name) return;
-      fetch('/warehouses', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ name })
-      }).then(() => loadSection('warehouses'));
-    }
-  </script>
+  <header>Üretim Takip Paneli</header>
+  <div class="dashboard">
+    <a class="widget" href="/materials">📦 Malzemelerim</a>
+    <a class="widget" href="/recipes">📋 Reçetelerim</a>
+    <a class="widget" href="/orders">🏭 Üretim Emirlerim</a>
+    <a class="widget" href="/warehouses">🏢 Ambarlar</a>
+  </div>
 </body>
 </html>
