@@ -1,4 +1,4 @@
-// Firebase modülleri (CDN üzerinden)
+// 🔥 Firebase modülleri
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
   getFirestore,
@@ -7,7 +7,7 @@ import {
   getDocs
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-// Firebase yapılandırma — senin verdiğin config
+// ✅ Firebase yapılandırması (senin config)
 const firebaseConfig = {
   apiKey: "AIzaSyD4MPM2fvkTXeOWG12g-wV_s3eG4SkBWS0",
   authDomain: "poleroyuncak.firebaseapp.com",
@@ -18,37 +18,47 @@ const firebaseConfig = {
   measurementId: "G-CV6WKBTJ3V"
 };
 
-// Firebase başlat
+// 🔗 Firebase başlat
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// HTML öğeleri
+// HTML elementlerini al
 const nameInput = document.getElementById("warehouseName");
-const warehouseList = document.getElementById("warehouseList");
+const addBtn = document.getElementById("addWarehouseBtn");
+const listEl = document.getElementById("warehouseList");
 
 // 🔁 Listeleme fonksiyonu
 async function getWarehouses() {
-  warehouseList.innerHTML = "";
-  const snapshot = await getDocs(collection(db, "warehouses"));
-  snapshot.forEach((doc) => {
-    const li = document.createElement("li");
-    li.textContent = doc.data().name;
-    warehouseList.appendChild(li);
-  });
+  listEl.innerHTML = "";
+  try {
+    const snapshot = await getDocs(collection(db, "warehouses"));
+    snapshot.forEach((doc) => {
+      const li = document.createElement("li");
+      li.textContent = doc.data().name;
+      listEl.appendChild(li);
+    });
+  } catch (e) {
+    console.error("Listeleme hatası:", e);
+  }
 }
 
 // ➕ Ekleme fonksiyonu
 async function addWarehouse() {
   const name = nameInput.value.trim();
   if (!name) {
-    alert("Ambar adı boş olamaz");
+    alert("Ambar adı boş olamaz!");
     return;
   }
 
-  await addDoc(collection(db, "warehouses"), { name });
-  nameInput.value = "";
-  getWarehouses();
+  try {
+    await addDoc(collection(db, "warehouses"), { name });
+    nameInput.value = "";
+    getWarehouses();
+  } catch (e) {
+    console.error("Ekleme hatası:", e);
+  }
 }
 
-// Sayfa yüklenince listele
+// Başlat
+addBtn.addEventListener("click", addWarehouse);
 getWarehouses();
