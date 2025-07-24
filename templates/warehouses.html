@@ -2,31 +2,52 @@
 <html lang="tr">
 <head>
   <meta charset="UTF-8">
-  <title>Ambar Yönetimi</title>
+  <title>Ambarlar</title>
   <style>
     body {
-      font-family: Arial;
-      background: #f4f4f4;
+      font-family: 'Segoe UI', sans-serif;
+      background: #f9fafb;
       margin: 0;
       padding: 20px;
     }
 
     h2 {
-      color: #333;
+      color: #222;
+      margin-bottom: 20px;
     }
 
-    ul {
-      list-style: none;
-      padding: 0;
+    .container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
     }
 
-    li.ambar {
+    .card {
       background: white;
-      margin-bottom: 10px;
-      padding: 15px;
-      border-radius: 8px;
-      border: 1px solid #ddd;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.06);
+      width: 300px;
+      transition: 0.2s;
+      cursor: default;
       position: relative;
+    }
+
+    .card:hover {
+      transform: scale(1.03);
+    }
+
+    .card-title {
+      font-size: 18px;
+      font-weight: bold;
+      color: #3b82f6;
+      margin-bottom: 10px;
+    }
+
+    .card-info {
+      font-size: 14px;
+      color: #555;
+      line-height: 1.4;
     }
 
     .context-menu {
@@ -53,9 +74,7 @@
 </head>
 <body>
   <h2>📦 Ambarlar</h2>
-  <ul id="warehouseList"></ul>
-
-  <!-- Sağ tık menüsü -->
+  <div class="container" id="warehouseList"></div>
   <ul id="contextMenu" class="context-menu" style="display:none;"></ul>
 
   <script type="module">
@@ -81,6 +100,7 @@
 
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
+
     const listEl = document.getElementById("warehouseList");
     const contextMenu = document.getElementById("contextMenu");
 
@@ -91,12 +111,21 @@
       const snapshot = await getDocs(collection(db, "warehouses"));
       snapshot.forEach((docSnap) => {
         const data = docSnap.data();
-        const li = document.createElement("li");
-        li.className = "ambar";
-        li.textContent = `${data.name} - ${data.person} (${data.phone})`;
-        li.dataset.id = docSnap.id;
-        li.dataset.raw = JSON.stringify(data);
-        listEl.appendChild(li);
+        const card = document.createElement("div");
+        card.className = "card";
+        card.dataset.id = docSnap.id;
+        card.dataset.raw = JSON.stringify(data);
+
+        card.innerHTML = `
+          <div class="card-title">${data.name}</div>
+          <div class="card-info">
+            📍 ${data.address || "-"}<br>
+            👤 ${data.person || "-"}<br>
+            📞 ${data.phone || "-"}
+          </div>
+        `;
+
+        listEl.appendChild(card);
       });
     }
 
@@ -104,25 +133,23 @@
       e.preventDefault();
       contextMenu.innerHTML = "";
 
-      const target = e.target.closest("li.ambar");
-      currentRightClicked = target;
+      const card = e.target.closest(".card");
+      currentRightClicked = card;
 
-      if (target) {
-        // Sağ tıklanan şey bir ambar
+      if (card) {
         const edit = document.createElement("li");
         edit.textContent = "Ambarı Düzenle";
-        edit.onclick = () => editWarehouse(JSON.parse(target.dataset.raw), target.dataset.id);
+        edit.onclick = () => editWarehouse(JSON.parse(card.dataset.raw), card.dataset.id);
         contextMenu.appendChild(edit);
       } else {
-        // Boşlukta sağ tıklandı
         const add = document.createElement("li");
         add.textContent = "Ambar Ekle";
         add.onclick = addWarehouse;
         contextMenu.appendChild(add);
       }
 
-      contextMenu.style.top = e.pageY + "px";
-      contextMenu.style.left = e.pageX + "px";
+      contextMenu.style.top = `${e.pageY}px`;
+      contextMenu.style.left = `${e.pageX}px`;
       contextMenu.style.display = "block";
     });
 
@@ -133,9 +160,8 @@
     async function addWarehouse() {
       const name = prompt("Ambar Adı:");
       const address = prompt("Açık Adresi:");
-      const person = prompt("İlgili Personel Adı:");
+      const person = prompt("İlgili Personel:");
       const phone = prompt("Telefon Numarası:");
-
       if (!name) return;
 
       await addDoc(collection(db, "warehouses"), {
@@ -151,13 +177,11 @@
     async function editWarehouse(data, id) {
       const name = prompt("Ambar Adı:", data.name);
       const address = prompt("Açık Adresi:", data.address);
-      const person = prompt("Personel Adı:", data.person);
+      const person = prompt("Personel:", data.person);
       const phone = prompt("Telefon:", data.phone);
-
       if (!name) return;
 
-      const ref = doc(db, "warehouses", id);
-      await updateDoc(ref, {
+      await updateDoc(doc(db, "warehouses", id), {
         name,
         address,
         person,
