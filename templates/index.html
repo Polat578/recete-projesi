@@ -3,7 +3,6 @@
 <head>
   <meta charset="UTF-8">
   <title>Üretim Takip Sistemi</title>
-  <link rel="stylesheet" href="/static/style.css">
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -16,203 +15,155 @@
       color: white;
       padding: 20px;
       text-align: center;
-      position: relative;
     }
-    #back-button {
-      position: absolute;
-      top: 20px;
-      left: 20px;
-      background: white;
-      color: #3b82f6;
-      border: 1px solid #3b82f6;
-      padding: 5px 12px;
-      border-radius: 6px;
-      cursor: pointer;
-      font-weight: bold;
-    }
-    .hidden {
-      display: none;
-    }
-    .dashboard {
-      display: flex;
-      justify-content: center;
-      gap: 20px;
-      padding: 20px;
-    }
-    .widget {
-      background: white;
-      padding: 40px;
-      border-radius: 12px;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-      cursor: pointer;
-      font-size: 1.2rem;
-      text-align: center;
-      transition: transform 0.2s ease;
-    }
-    .widget:hover {
-      transform: scale(1.05);
-    }
-    #content-area {
+    .section {
+      max-width: 800px;
       margin: 20px auto;
-      width: 90%;
       background: white;
       padding: 20px;
-      border-radius: 8px;
-      min-height: 300px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.05);
+      border-radius: 10px;
     }
-    .context-menu {
-      position: absolute;
-      background: white;
-      border: 1px solid #ccc;
-      border-radius: 6px;
+    h2 {
+      margin-top: 0;
+    }
+    input, select, button {
+      margin: 5px 0;
+      padding: 8px;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    ul {
       list-style: none;
-      padding: 5px 0;
-      margin: 0;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.15);
-      z-index: 999;
+      padding: 0;
     }
-    .context-menu li {
-      padding: 8px 16px;
-      cursor: pointer;
-    }
-    .context-menu li:hover {
-      background-color: #f0f0f0;
+    li {
+      background: #f9f9f9;
+      margin-bottom: 6px;
+      padding: 10px;
+      border-radius: 6px;
     }
   </style>
 </head>
 <body>
+
   <header>
-    <button id="back-button" onclick="goBack()" class="hidden">⬅ Geri</button>
-    <h1>Üretim Takip Paneli</h1>
+    <h1>📦 Üretim Takip Paneli</h1>
   </header>
 
-  <main>
-    <div class="dashboard" id="widget-container">
-      <div class="widget" onclick="loadSection('materials')">📦 Malzemelerim</div>
-      <div class="widget" onclick="loadSection('recipes')">📋 Reçetelerim</div>
-      <div class="widget" onclick="loadSection('orders')">🏭 Üretim Emirlerim</div>
-      <div class="widget" onclick="loadSection('warehouses')">🏢 Ambarlar</div>
-    </div>
+  <div class="section">
+    <h2>🏢 Ambarlar</h2>
+    <input type="text" id="warehouseName" placeholder="Ambar adı girin">
+    <button id="addWarehouseBtn">➕ Ambar Ekle</button>
+    <ul id="warehouseList"></ul>
+  </div>
 
-    <section id="content-area" oncontextmenu="return showContextMenu(event)">
-      <!-- İçerik buraya dinamik olarak gelecek -->
-    </section>
-  </main>
-
-  <ul id="context-menu" class="context-menu hidden">
-    <!-- Sağ tık menüsü -->
-  </ul>
-
-  <!-- Malzeme Ekle Modalı -->
-  <div id="material-modal" class="hidden" style="position: fixed; top: 10%; left: 50%; transform: translateX(-50%); background: white; border: 1px solid #ccc; padding: 20px; width: 500px; max-width: 90%; box-shadow: 0 4px 10px rgba(0,0,0,0.2); border-radius: 10px; z-index: 1000;">
-    <h3>Malzeme Ekle</h3>
-    <input id="material-name" type="text" placeholder="Ürün Adı"><br><br>
-    <input id="material-unit" type="text" placeholder="Birim"><br><br>
-    <input id="material-qty" type="number" placeholder="Adet"><br><br>
-    <input id="material-cycle" type="text" placeholder="Çevrim Süresi"><br><br>
+  <div class="section">
+    <h2>📦 Malzeme Ekle</h2>
+    <input type="text" id="material-name" placeholder="Ürün Adı">
+    <input type="text" id="material-unit" placeholder="Birim">
+    <input type="number" id="material-qty" placeholder="Adet">
+    <input type="text" id="material-cycle" placeholder="Çevrim Süresi">
     <select id="material-type">
       <option value="">Ürün Cinsi</option>
       <option value="Hammadde">Hammadde</option>
       <option value="Yarı-Mamul">Yarı-Mamul</option>
       <option value="Mamul">Mamul</option>
-      <option value="Demirbaş">Demirbaş</option>
-      <option value="Aksam Parça">Aksam Parça</option>
-    </select><br><br>
-    <input id="material-warehouse" type="text" placeholder="Ambar"><br><br>
-    <input id="material-code" type="text" placeholder="Stok Kodu"><br><br>
-    <button onclick="submitMaterial()">💾 Kaydet</button>
-    <button onclick="closeMaterialModal()">❌ İptal</button>
+    </select>
+    <input type="text" id="material-warehouse" placeholder="Ambar">
+    <input type="text" id="material-code" placeholder="Stok Kodu">
+    <button id="addMaterialBtn">💾 Malzeme Kaydet</button>
   </div>
 
-  <script>
-    let currentSection = '';
+  <div class="section">
+    <h2>📄 Malzeme Listesi</h2>
+    <ul id="materialList"></ul>
+  </div>
 
-    function loadSection(section) {
-      currentSection = section;
-      hideContextMenu();
-      document.getElementById("widget-container").style.display = "none";
-      document.getElementById("back-button").classList.remove("hidden");
+  <!-- Firebase SDK ve script -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import {
+      getFirestore,
+      collection,
+      addDoc,
+      getDocs
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-      fetch(`/static/${section}.html`)
-        .then(res => res.text())
-        .then(html => {
-          document.getElementById("content-area").innerHTML = html;
-        });
-    }
+    const firebaseConfig = {
+      apiKey: "AIzaSyD4MPM2fvkTXeOWG12g-wV_s3eG4SkBWS0",
+      authDomain: "poleroyuncak.firebaseapp.com",
+      projectId: "poleroyuncak",
+      storageBucket: "poleroyuncak.firebasestorage.app",
+      messagingSenderId: "473844630811",
+      appId: "1:473844630811:web:bd89bb7d85c7b17ea03fbe",
+      measurementId: "G-CV6WKBTJ3V"
+    };
 
-    function showContextMenu(event) {
-      event.preventDefault();
-      const menu = document.getElementById("context-menu");
-      menu.innerHTML = '';
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
 
-      if (currentSection === 'materials') {
-        menu.innerHTML = '<li onclick="openMaterialModal()">Malzeme Ekle</li>';
-      } else if (currentSection === 'recipes') {
-        menu.innerHTML = '<li onclick="alert(\'Reçete ekleme açılacak\')">Reçete Ekle</li>';
-      } else if (currentSection === 'orders') {
-        menu.innerHTML = '<li onclick="alert(\'Sipariş ekleme açılacak\')">Sipariş Ekle</li>';
-      } else if (currentSection === 'warehouses') {
-        menu.innerHTML = '<li onclick="addWarehouse()">Ambar Ekle</li>';
-      }
+    const nameInput = document.getElementById("warehouseName");
+    const addWarehouseBtn = document.getElementById("addWarehouseBtn");
+    const warehouseList = document.getElementById("warehouseList");
 
-      menu.classList.remove("hidden");
-      menu.style.top = `${event.pageY}px`;
-      menu.style.left = `${event.pageX}px`;
-      return false;
-    }
+    const matName = document.getElementById("material-name");
+    const matUnit = document.getElementById("material-unit");
+    const matQty = document.getElementById("material-qty");
+    const matCycle = document.getElementById("material-cycle");
+    const matType = document.getElementById("material-type");
+    const matWh = document.getElementById("material-warehouse");
+    const matCode = document.getElementById("material-code");
+    const addMatBtn = document.getElementById("addMaterialBtn");
+    const matList = document.getElementById("materialList");
 
-    function hideContextMenu() {
-      document.getElementById("context-menu").classList.add("hidden");
-    }
+    // Ambar Ekle
+    addWarehouseBtn.addEventListener("click", async () => {
+      const name = nameInput.value.trim();
+      if (!name) return alert("Ambar adı boş olamaz");
+      await addDoc(collection(db, "warehouses"), { name });
+      nameInput.value = "";
+      loadWarehouses();
+    });
 
-    document.addEventListener("click", hideContextMenu);
-
-    function goBack() {
-      document.getElementById("widget-container").style.display = "flex";
-      document.getElementById("back-button").classList.add("hidden");
-      document.getElementById("content-area").innerHTML = '';
-      currentSection = '';
-    }
-
-    function openMaterialModal() {
-      document.getElementById("material-modal").classList.remove("hidden");
-    }
-
-    function closeMaterialModal() {
-      document.getElementById("material-modal").classList.add("hidden");
-    }
-
-    function submitMaterial() {
+    // Malzeme Ekle
+    addMatBtn.addEventListener("click", async () => {
       const data = {
-        name: document.getElementById("material-name").value,
-        unit: document.getElementById("material-unit").value,
-        stock_amount: parseFloat(document.getElementById("material-qty").value) || 0,
-        cycle_time: document.getElementById("material-cycle").value,
-        type: document.getElementById("material-type").value,
-        warehouse: document.getElementById("material-warehouse").value,
-        stock_code: document.getElementById("material-code").value
+        name: matName.value,
+        unit: matUnit.value,
+        stock_amount: parseFloat(matQty.value),
+        cycle_time: matCycle.value,
+        type: matType.value,
+        warehouse: matWh.value,
+        stock_code: matCode.value
       };
+      await addDoc(collection(db, "materials"), data);
+      matName.value = matUnit.value = matQty.value = matCycle.value = matType.value = matWh.value = matCode.value = "";
+      loadMaterials();
+    });
 
-      fetch('/materials', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify(data)
-      }).then(() => {
-        closeMaterialModal();
-        loadSection('materials');
+    async function loadWarehouses() {
+      warehouseList.innerHTML = "";
+      const snapshot = await getDocs(collection(db, "warehouses"));
+      snapshot.forEach(doc => {
+        const li = document.createElement("li");
+        li.textContent = doc.data().name;
+        warehouseList.appendChild(li);
       });
     }
 
-    function addWarehouse() {
-      const name = prompt("Ambar adı:");
-      if (!name) return;
-      fetch('/warehouses', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ name })
-      }).then(() => loadSection('warehouses'));
+    async function loadMaterials() {
+      matList.innerHTML = "";
+      const snapshot = await getDocs(collection(db, "materials"));
+      snapshot.forEach(doc => {
+        const m = doc.data();
+        const li = document.createElement("li");
+        li.textContent = `${m.name} (${m.unit}) - ${m.stock_amount} - ${m.type}`;
+        matList.appendChild(li);
+      });
     }
+
+    loadWarehouses();
+    loadMaterials();
   </script>
 </body>
 </html>
