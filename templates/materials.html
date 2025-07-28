@@ -18,42 +18,12 @@
 <body>
   <h1>📦 Malzemeler</h1>
   <div id="materialList"></div>
-
-  <!-- Sağ tık menüsü -->
   <ul id="context-menu">
     <li onclick="openModal()">➕ Malzeme Ekle</li>
     <li onclick="openTransferModal()">🔄 Ambar Transferi</li>
   </ul>
-
-  <!-- Arkaplan -->
   <div id="overlay" onclick="closeAllModals()"></div>
-
-  <!-- Malzeme Ekle Modalı -->
-  <div id="modal">
-    <h3>Yeni Malzeme Ekle</h3>
-    <input id="mat-name" placeholder="Ürün Adı">
-    <input id="mat-code" placeholder="Stok Kodu">
-    <input id="mat-cycle" placeholder="Çevrim Süresi (varsa)">
-    <select id="mat-type">
-      <option value="mamul">Mamul</option>
-      <option value="yarı mamul">Yarı Mamul</option>
-      <option value="hammadde">Hammadde</option>
-      <option value="akşam parça">Aksam Parça</option>
-    </select>
-    <select id="mat-warehouse"></select>
-    <select id="mat-unit">
-      <option value="adet">Adet</option>
-      <option value="gram">Gram</option>
-      <option value="litre">Litre</option>
-    </select>
-    <input id="mat-qty" type="number" placeholder="Miktar">
-    <input id="mat-cost" type="number" placeholder="Maliyet">
-    <br><br>
-    <button onclick="saveMaterial()">💾 Kaydet</button>
-    <button onclick="closeAllModals()">❌ Kapat</button>
-  </div>
-
-  <!-- Transfer Modalı -->
+  <div id="modal"> <!-- Malzeme Ekle Modalı --></div>
   <div id="transfer-modal">
     <h3>Ambar Transferi</h3>
     <input type="text" id="productSearch" placeholder="Ürün ara...">
@@ -68,25 +38,21 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
     import {
-      getFirestore, collection, addDoc, getDocs, Timestamp
+      getFirestore,
+      collection,
+      addDoc,
+      getDocs,
+      Timestamp
     } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyD4MPM2fvkTXeOWG12g-wV_s3eG4SkBWS0",
-      authDomain: "poleroyuncak.firebaseapp.com",
-      projectId: "poleroyuncak",
-      storageBucket: "poleroyuncak.firebasestorage.app",
-      messagingSenderId: "473844630811",
-      appId: "1:473844630811:web:bd89bb7d85c7b17ea03fbe"
-    };
-
+    const firebaseConfig = { apiKey: "AIzaSyD4MPM2fvkTXeOWG12g-wV_s3eG4SkBWS0", authDomain: "poleroyuncak.firebaseapp.com", projectId: "poleroyuncak", storageBucket: "poleroyuncak.firebasestorage.app", messagingSenderId: "473844630811", appId: "1:473844630811:web:bd89bb7d85c7b17ea03fbe", measurementId: "G-CV6WKBTJ3V" };
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
     const list = document.getElementById("materialList");
     const productSelect = document.getElementById("transfer-product");
+    const contextMenu = document.getElementById("context-menu");
 
-    // SAĞ TIK MENÜSÜ
     document.addEventListener("click", () => contextMenu.style.display = "none");
     document.addEventListener("contextmenu", (e) => {
       e.preventDefault();
@@ -94,57 +60,6 @@
       contextMenu.style.top = `${e.pageY}px`;
       contextMenu.style.left = `${e.pageX}px`;
     });
-
-    async function saveMaterial() {
-      const data = {
-        name: document.getElementById("mat-name").value,
-        stock_code: document.getElementById("mat-code").value,
-        cycle_time: document.getElementById("mat-cycle").value,
-        type: document.getElementById("mat-type").value,
-        warehouse: document.getElementById("mat-warehouse").value,
-        unit: document.getElementById("mat-unit").value,
-        stock_amount: parseFloat(document.getElementById("mat-qty").value),
-        cost: parseFloat(document.getElementById("mat-cost").value),
-        created_at: Timestamp.now(),
-        updated_at: Timestamp.now()
-      };
-
-      if (!data.name || !data.stock_code || !data.warehouse || isNaN(data.stock_amount)) {
-        alert("Lütfen gerekli alanları doldurun!");
-        return;
-      }
-
-      await addDoc(collection(db, "materials"), data);
-      alert("✅ Malzeme başarıyla eklendi!");
-      closeAllModals();
-      loadMaterials();
-    }
-
-    async function loadMaterials() {
-      list.innerHTML = "⏳ Yükleniyor...";
-      const snapshot = await getDocs(collection(db, "materials"));
-      list.innerHTML = "";
-      snapshot.forEach(doc => {
-        const m = doc.data();
-        const div = document.createElement("div");
-        div.className = "material";
-        div.textContent = `🔹 ${m.name} (${m.stock_code}) – ${m.stock_amount} ${m.unit}`;
-        list.appendChild(div);
-      });
-    }
-
-    async function loadWarehouses() {
-      const select = document.getElementById("mat-warehouse");
-      const snapshot = await getDocs(collection(db, "warehouses"));
-      select.innerHTML = "<option value=''>Ambar Seç</option>";
-      snapshot.forEach(doc => {
-        const name = doc.data().name;
-        const opt = document.createElement("option");
-        opt.value = name;
-        opt.textContent = name;
-        select.appendChild(opt);
-      });
-    }
 
     function openModal() {
       document.getElementById("modal").style.display = "block";
@@ -216,9 +131,20 @@
       closeAllModals();
     }
 
-    // Yükleme
+    async function loadMaterials() {
+      list.innerHTML = "⏳ Yükleniyor...";
+      const snapshot = await getDocs(collection(db, "materials"));
+      list.innerHTML = "";
+      snapshot.forEach(doc => {
+        const m = doc.data();
+        const div = document.createElement("div");
+        div.className = "material";
+        div.textContent = `🔹 ${m.name} (${m.stock_code}) – ${m.stock_amount} ${m.unit}`;
+        list.appendChild(div);
+      });
+    }
+
     loadMaterials();
-    loadWarehouses();
   </script>
 </body>
 </html>
