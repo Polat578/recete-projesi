@@ -17,7 +17,6 @@
 
     hr { border: none; border-top: 1px solid #ccc; }
 
-    /* Sağ tık menüsü */
     #context-menu {
       position: absolute;
       z-index: 1000;
@@ -38,7 +37,6 @@
       background: #eee;
     }
 
-    /* Modal */
     #modal {
       display: none;
       position: fixed;
@@ -74,16 +72,13 @@
   <h1>📦 Malzemeler</h1>
   <div id="materialList"></div>
 
-  <!-- Sağ tık menüsü -->
   <ul id="context-menu">
     <li onclick="openModal()">➕ Malzeme Ekle</li>
     <li onclick="alert('🕓 Hareket geçmişi yakında')">📄 Ambar Hareketleri</li>
   </ul>
 
-  <!-- Arkaplan -->
   <div id="overlay" onclick="closeModal()"></div>
 
-  <!-- Modal -->
   <div id="modal">
     <h3>Yeni Malzeme Ekle</h3>
     <input id="mat-name" placeholder="Ürün Adı">
@@ -155,6 +150,11 @@
         created_at: Timestamp.now(),
         updated_at: Timestamp.now()
       };
+
+      if (!data.name || !data.stock_code || !data.warehouse || isNaN(data.stock_amount)) {
+        alert("Lütfen gerekli alanları doldurun!");
+        return;
+      }
 
       await addDoc(collection(db, "materials"), data);
       closeModal();
