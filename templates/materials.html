@@ -7,34 +7,38 @@
     body { font-family: sans-serif; padding: 20px; background: #f2f2f2; }
     h1 { text-align: center; }
     .material { background: #fff; padding: 12px; margin-bottom: 10px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-    hr { border: none; border-top: 1px solid #ccc; }
     #context-menu { position: absolute; z-index: 1000; display: none; background: white; border: 1px solid #ccc; border-radius: 5px; list-style: none; padding: 5px 0; }
     #context-menu li { padding: 8px 16px; cursor: pointer; }
     #context-menu li:hover { background: #eee; }
-    #modal { display: none; position: fixed; z-index: 9999; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 20px; border-radius: 10px; box-shadow: 0 0 15px rgba(0,0,0,0.2); width: 400px; }
-    #modal input, #modal select { width: 100%; padding: 8px; margin: 6px 0; box-sizing: border-box; }
+    #modal, #transfer-modal { display: none; position: fixed; z-index: 9999; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 20px; border-radius: 10px; box-shadow: 0 0 15px rgba(0,0,0,0.2); width: 400px; }
+    #modal input, #modal select, #transfer-modal select { width: 100%; padding: 8px; margin: 6px 0; box-sizing: border-box; }
     #overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9998; }
   </style>
 </head>
 <body>
   <h1>📦 Malzemeler</h1>
   <div id="materialList"></div>
+
+  <!-- Sağ tık menüsü -->
   <ul id="context-menu">
     <li onclick="openModal()">➕ Malzeme Ekle</li>
-    <li onclick="alert('🕓 Hareket geçmişi yakında')">📄 Ambar Hareketleri</li>
+    <li onclick="openTransferModal()">🔄 Ambar Transferi</li>
   </ul>
-  <div id="overlay" onclick="closeModal()"></div>
+
+  <!-- Arkaplan -->
+  <div id="overlay" onclick="closeAllModals()"></div>
+
+  <!-- Malzeme Ekle Modalı -->
   <div id="modal">
     <h3>Yeni Malzeme Ekle</h3>
     <input id="mat-name" placeholder="Ürün Adı">
     <input id="mat-code" placeholder="Stok Kodu">
     <input id="mat-cycle" placeholder="Çevrim Süresi (varsa)">
     <select id="mat-type">
-      <option value="">Malzeme Türü Seç</option>
       <option value="mamul">Mamul</option>
-      <option value="yari-mamul">Yarı Mamul</option>
-      <option value="aksam">Aksam Parça</option>
+      <option value="yarı mamul">Yarı Mamul</option>
       <option value="hammadde">Hammadde</option>
+      <option value="akşam parça">Aksam Parça</option>
     </select>
     <select id="mat-warehouse"></select>
     <select id="mat-unit">
@@ -46,17 +50,25 @@
     <input id="mat-cost" type="number" placeholder="Maliyet">
     <br><br>
     <button onclick="saveMaterial()">💾 Kaydet</button>
-    <button onclick="closeModal()">❌ Kapat</button>
+    <button onclick="closeAllModals()">❌ Kapat</button>
+  </div>
+
+  <!-- Transfer Modalı -->
+  <div id="transfer-modal">
+    <h3>Ambar Transferi</h3>
+    <input type="text" id="productSearch" placeholder="Ürün ara...">
+    <select id="transfer-product" size="6"></select>
+    <input id="transfer-from" placeholder="Çıkış Ambarı" disabled>
+    <select id="transfer-to"></select>
+    <br><br>
+    <button onclick="executeTransfer()">📦 Transfer Et</button>
+    <button onclick="closeAllModals()">❌ Kapat</button>
   </div>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
     import {
-      getFirestore,
-      collection,
-      addDoc,
-      getDocs,
-      Timestamp
+      getFirestore, collection, addDoc, getDocs, Timestamp
     } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
     const firebaseConfig = {
@@ -65,44 +77,23 @@
       projectId: "poleroyuncak",
       storageBucket: "poleroyuncak.firebasestorage.app",
       messagingSenderId: "473844630811",
-      appId: "1:473844630811:web:bd89bb7d85c7b17ea03fbe",
-      measurementId: "G-CV6WKBTJ3V"
+      appId: "1:473844630811:web:bd89bb7d85c7b17ea03fbe"
     };
 
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
     const list = document.getElementById("materialList");
-    const menu = document.getElementById("context-menu");
+    const productSelect = document.getElementById("transfer-product");
 
-    document.addEventListener("click", () => menu.style.display = "none");
+    // SAĞ TIK MENÜSÜ
+    document.addEventListener("click", () => contextMenu.style.display = "none");
     document.addEventListener("contextmenu", (e) => {
       e.preventDefault();
-      menu.style.display = "block";
-      menu.style.top = `${e.pageY}px`;
-      menu.style.left = `${e.pageX}px`;
+      contextMenu.style.display = "block";
+      contextMenu.style.top = `${e.pageY}px`;
+      contextMenu.style.left = `${e.pageX}px`;
     });
-
-    function openModal() {
-      document.getElementById("modal").style.display = "block";
-      document.getElementById("overlay").style.display = "block";
-    }
-
-    function closeModal() {
-      document.getElementById("modal").style.display = "none";
-      document.getElementById("overlay").style.display = "none";
-    }
-
-    function clearForm() {
-      document.getElementById("mat-name").value = "";
-      document.getElementById("mat-code").value = "";
-      document.getElementById("mat-cycle").value = "";
-      document.getElementById("mat-type").value = "";
-      document.getElementById("mat-warehouse").value = "";
-      document.getElementById("mat-unit").value = "adet";
-      document.getElementById("mat-qty").value = "";
-      document.getElementById("mat-cost").value = "";
-    }
 
     async function saveMaterial() {
       const data = {
@@ -123,61 +114,111 @@
         return;
       }
 
-      try {
-        await addDoc(collection(db, "materials"), data);
-        alert("✅ Malzeme başarıyla eklendi!");
-        closeModal();
-        clearForm();
-        loadMaterials();
-      } catch (e) {
-        console.error("Malzeme ekleme hatası:", e);
-      }
+      await addDoc(collection(db, "materials"), data);
+      alert("✅ Malzeme başarıyla eklendi!");
+      closeAllModals();
+      loadMaterials();
     }
 
     async function loadMaterials() {
       list.innerHTML = "⏳ Yükleniyor...";
-      try {
-        const snapshot = await getDocs(collection(db, "materials"));
-        list.innerHTML = "";
-        snapshot.forEach(doc => {
-          const m = doc.data();
-          const div = document.createElement("div");
-          div.className = "material";
-          div.textContent = `🔹 ${m.name} (${m.stock_code}) – ${m.stock_amount} ${m.unit}`;
-          list.appendChild(div);
-          list.appendChild(document.createElement("hr"));
-        });
-      } catch (err) {
-        console.error("Listeleme hatası:", err);
-        list.innerHTML = "❌ Liste yüklenemedi.";
-      }
+      const snapshot = await getDocs(collection(db, "materials"));
+      list.innerHTML = "";
+      snapshot.forEach(doc => {
+        const m = doc.data();
+        const div = document.createElement("div");
+        div.className = "material";
+        div.textContent = `🔹 ${m.name} (${m.stock_code}) – ${m.stock_amount} ${m.unit}`;
+        list.appendChild(div);
+      });
     }
 
     async function loadWarehouses() {
       const select = document.getElementById("mat-warehouse");
-      try {
-        const snapshot = await getDocs(collection(db, "warehouses"));
-        select.innerHTML = "<option value=''>Ambar Seç</option>";
-        snapshot.forEach(doc => {
-          const name = doc.data().name;
-          const opt = document.createElement("option");
-          opt.value = name;
-          opt.textContent = name;
-          select.appendChild(opt);
-        });
-      } catch (err) {
-        console.error("Ambarlar yüklenemedi:", err);
-      }
+      const snapshot = await getDocs(collection(db, "warehouses"));
+      select.innerHTML = "<option value=''>Ambar Seç</option>";
+      snapshot.forEach(doc => {
+        const name = doc.data().name;
+        const opt = document.createElement("option");
+        opt.value = name;
+        opt.textContent = name;
+        select.appendChild(opt);
+      });
     }
 
-    // Başlat
+    function openModal() {
+      document.getElementById("modal").style.display = "block";
+      document.getElementById("overlay").style.display = "block";
+    }
+
+    function openTransferModal() {
+      document.getElementById("transfer-modal").style.display = "block";
+      document.getElementById("overlay").style.display = "block";
+      loadTransferProducts();
+      loadTransferWarehouses();
+    }
+
+    function closeAllModals() {
+      document.getElementById("modal").style.display = "none";
+      document.getElementById("transfer-modal").style.display = "none";
+      document.getElementById("overlay").style.display = "none";
+    }
+
+    async function loadTransferProducts() {
+      const snapshot = await getDocs(collection(db, "materials"));
+      productSelect.innerHTML = "";
+      snapshot.forEach(doc => {
+        const m = doc.data();
+        const option = document.createElement("option");
+        option.value = JSON.stringify({ id: doc.id, ...m });
+        option.textContent = `${m.name} (${m.stock_code})`;
+        productSelect.appendChild(option);
+      });
+    }
+
+    document.getElementById("productSearch").addEventListener("input", function () {
+      const filter = this.value.toLowerCase();
+      [...productSelect.options].forEach(opt => {
+        opt.style.display = opt.textContent.toLowerCase().includes(filter) ? "block" : "none";
+      });
+    });
+
+    productSelect.addEventListener("change", function () {
+      const selected = JSON.parse(this.value);
+      document.getElementById("transfer-from").value = selected.warehouse || "Tanımsız";
+    });
+
+    async function loadTransferWarehouses() {
+      const select = document.getElementById("transfer-to");
+      const snapshot = await getDocs(collection(db, "warehouses"));
+      select.innerHTML = "<option value=''>Giriş Ambarı Seç</option>";
+      snapshot.forEach(doc => {
+        const opt = document.createElement("option");
+        opt.value = doc.data().name;
+        opt.textContent = doc.data().name;
+        select.appendChild(opt);
+      });
+    }
+
+    async function executeTransfer() {
+      const selected = JSON.parse(productSelect.value);
+      const to = document.getElementById("transfer-to").value;
+      const from = document.getElementById("transfer-from").value;
+      if (!selected || !to || !from) return alert("Tüm alanları doldurun.");
+      await addDoc(collection(db, "transfers"), {
+        product_id: selected.id,
+        product_name: selected.name,
+        from,
+        to,
+        date: Timestamp.now()
+      });
+      alert("✅ Transfer kaydedildi");
+      closeAllModals();
+    }
+
+    // Yükleme
     loadMaterials();
     loadWarehouses();
-
-    // Global erişim
-    window.openModal = openModal;
-    window.closeModal = closeModal;
-    window.saveMaterial = saveMaterial;
   </script>
 </body>
 </html>
