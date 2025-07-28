@@ -59,6 +59,8 @@
       collection,
       addDoc,
       getDocs,
+      doc,
+      updateDoc,
       Timestamp
     } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
@@ -176,8 +178,16 @@
         date: Timestamp.now()
       });
 
-      alert("✅ Transfer kaydedildi");
+      const matRef = doc(db, "materials", selected.id);
+      await updateDoc(matRef, {
+        stock_amount: selected.stock_amount - qty,
+        warehouse: to,
+        updated_at: Timestamp.now()
+      });
+
+      alert("✅ Transfer kaydedildi ve ürün güncellendi");
       closeAllModals();
+      loadMaterials();
     }
 
     async function saveMaterial() {
