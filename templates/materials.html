@@ -11,7 +11,7 @@
     #context-menu li { padding: 8px 16px; cursor: pointer; }
     #context-menu li:hover { background: #eee; }
     #modal, #transfer-modal { display: none; position: fixed; z-index: 9999; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 20px; border-radius: 10px; box-shadow: 0 0 15px rgba(0,0,0,0.2); width: 400px; }
-    #modal input, #modal select, #transfer-modal select { width: 100%; padding: 8px; margin: 6px 0; box-sizing: border-box; }
+    #modal input, #modal select, #transfer-modal select, #transfer-modal input { width: 100%; padding: 8px; margin: 6px 0; box-sizing: border-box; }
     #overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9998; }
   </style>
 </head>
@@ -37,7 +37,7 @@
     <input id="mat-qty" type="number" placeholder="Miktar">
     <input id="mat-cost" type="number" placeholder="Maliyet">
     <br><br>
-    <button onclick="saveMaterial()">💾 Kaydet</button>
+    <button id="saveMatBtn">💾 Kaydet</button>
     <button onclick="closeAllModals()">❌ Kapat</button>
   </div>
   <div id="transfer-modal">
@@ -46,8 +46,9 @@
     <select id="transfer-product" size="6"></select>
     <input id="transfer-from" placeholder="Çıkış Ambarı" disabled>
     <select id="transfer-to"></select>
+    <input type="number" id="transfer-qty" placeholder="Miktar">
     <br><br>
-    <button onclick="executeTransfer()">📦 Transfer Et</button>
+    <button id="transferSubmit">📦 Transfer Et</button>
     <button onclick="closeAllModals()">❌ Kapat</button>
   </div>
 
@@ -88,9 +89,13 @@
       openTransferModal();
     });
 
+    document.getElementById("saveMatBtn").addEventListener("click", saveMaterial);
+    document.getElementById("transferSubmit").addEventListener("click", executeTransfer);
+
     function openModal() {
       document.getElementById("modal").style.display = "block";
       overlay.style.display = "block";
+      loadWarehouses();
     }
 
     function openTransferModal() {
@@ -104,6 +109,18 @@
       document.getElementById("modal").style.display = "none";
       document.getElementById("transfer-modal").style.display = "none";
       overlay.style.display = "none";
+    }
+
+    async function loadWarehouses() {
+      const select = document.getElementById("mat-warehouse");
+      const snapshot = await getDocs(collection(db, "warehouses"));
+      select.innerHTML = "<option value=''>Ambar Seç</option>";
+      snapshot.forEach(doc => {
+        const opt = document.createElement("option");
+        opt.value = doc.data().name;
+        opt.textContent = doc.data().name;
+        select.appendChild(opt);
+      });
     }
 
     async function loadTransferProducts() {
@@ -146,14 +163,19 @@
       const selected = JSON.parse(productSelect.value);
       const to = document.getElementById("transfer-to").value;
       const from = document.getElementById("transfer-from").value;
-      if (!selected || !to || !from) return alert("Tüm alanları doldurun.");
+      const qty = parseFloat(document.getElementById("transfer-qty").value);
+      if (!selected || !to || !from || isNaN(qty) || qty <= 0) return alert("Tüm alanları doğru doldurun.");
+      if (qty > selected.stock_amount) return alert("Yeterli stok yok!");
+
       await addDoc(collection(db, "transfers"), {
         product_id: selected.id,
         product_name: selected.name,
         from,
         to,
+        quantity: qty,
         date: Timestamp.now()
       });
+
       alert("✅ Transfer kaydedildi");
       closeAllModals();
     }
