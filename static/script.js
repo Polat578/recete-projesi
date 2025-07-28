@@ -62,3 +62,33 @@ async function addWarehouse() {
 // Başlat
 addBtn.addEventListener("click", addWarehouse);
 getWarehouses();
+// 📦 Malzeme Ekleme Fonksiyonu
+async function addMaterial() {
+  const name = document.getElementById("mat-name").value.trim();
+  const code = document.getElementById("mat-code").value.trim();
+  const cycle = document.getElementById("mat-cycle").value.trim();
+
+  if (!name || !code || !cycle) {
+    alert("Lütfen tüm alanları doldurun!");
+    return;
+  }
+
+  try {
+    await addDoc(collection(db, "materials"), {
+      name,
+      code,
+      cycleTime: cycle
+    });
+
+    alert("Malzeme başarıyla eklendi!");
+    closeModal();
+    document.getElementById("mat-name").value = "";
+    document.getElementById("mat-code").value = "";
+    document.getElementById("mat-cycle").value = "";
+
+    // Gerekirse buraya listeyi yenile fonksiyonu da eklenebilir
+  } catch (e) {
+    console.error("Malzeme eklenemedi:", e);
+  }
+}
+
