@@ -19,11 +19,27 @@
   <h1>📦 Malzemeler</h1>
   <div id="materialList"></div>
   <ul id="context-menu">
-    <li onclick="openModal()">➕ Malzeme Ekle</li>
-    <li onclick="openTransferModal()">🔄 Ambar Transferi</li>
+    <li id="addMaterialBtn">➕ Malzeme Ekle</li>
+    <li id="transferBtn">🔄 Ambar Transferi</li>
   </ul>
   <div id="overlay" onclick="closeAllModals()"></div>
-  <div id="modal"> <!-- Malzeme Ekle Modalı --></div>
+  <div id="modal">
+    <h3>Yeni Malzeme Ekle</h3>
+    <input id="mat-name" placeholder="Ürün Adı">
+    <input id="mat-code" placeholder="Stok Kodu">
+    <input id="mat-cycle" placeholder="Çevrim Süresi (varsa)">
+    <select id="mat-warehouse"></select>
+    <select id="mat-unit">
+      <option value="adet">Adet</option>
+      <option value="gram">Gram</option>
+      <option value="litre">Litre</option>
+    </select>
+    <input id="mat-qty" type="number" placeholder="Miktar">
+    <input id="mat-cost" type="number" placeholder="Maliyet">
+    <br><br>
+    <button onclick="saveMaterial()">💾 Kaydet</button>
+    <button onclick="closeAllModals()">❌ Kapat</button>
+  </div>
   <div id="transfer-modal">
     <h3>Ambar Transferi</h3>
     <input type="text" id="productSearch" placeholder="Ürün ara...">
@@ -52,6 +68,7 @@
     const list = document.getElementById("materialList");
     const productSelect = document.getElementById("transfer-product");
     const contextMenu = document.getElementById("context-menu");
+    const overlay = document.getElementById("overlay");
 
     document.addEventListener("click", () => contextMenu.style.display = "none");
     document.addEventListener("contextmenu", (e) => {
@@ -61,14 +78,24 @@
       contextMenu.style.left = `${e.pageX}px`;
     });
 
+    document.getElementById("addMaterialBtn").addEventListener("click", () => {
+      contextMenu.style.display = "none";
+      openModal();
+    });
+
+    document.getElementById("transferBtn").addEventListener("click", () => {
+      contextMenu.style.display = "none";
+      openTransferModal();
+    });
+
     function openModal() {
       document.getElementById("modal").style.display = "block";
-      document.getElementById("overlay").style.display = "block";
+      overlay.style.display = "block";
     }
 
     function openTransferModal() {
       document.getElementById("transfer-modal").style.display = "block";
-      document.getElementById("overlay").style.display = "block";
+      overlay.style.display = "block";
       loadTransferProducts();
       loadTransferWarehouses();
     }
@@ -76,7 +103,7 @@
     function closeAllModals() {
       document.getElementById("modal").style.display = "none";
       document.getElementById("transfer-modal").style.display = "none";
-      document.getElementById("overlay").style.display = "none";
+      overlay.style.display = "none";
     }
 
     async function loadTransferProducts() {
@@ -129,6 +156,32 @@
       });
       alert("✅ Transfer kaydedildi");
       closeAllModals();
+    }
+
+    async function saveMaterial() {
+      const data = {
+        name: document.getElementById("mat-name").value,
+        stock_code: document.getElementById("mat-code").value,
+        cycle_time: document.getElementById("mat-cycle").value,
+        warehouse: document.getElementById("mat-warehouse").value,
+        unit: document.getElementById("mat-unit").value,
+        stock_amount: parseFloat(document.getElementById("mat-qty").value),
+        cost: parseFloat(document.getElementById("mat-cost").value),
+        created_at: Timestamp.now(),
+        updated_at: Timestamp.now()
+      };
+      if (!data.name || !data.stock_code || !data.warehouse || isNaN(data.stock_amount)) {
+        alert("Lütfen gerekli alanları doldurun!");
+        return;
+      }
+      try {
+        await addDoc(collection(db, "materials"), data);
+        alert("✅ Malzeme başarıyla eklendi!");
+        closeAllModals();
+        loadMaterials();
+      } catch (e) {
+        console.error("Malzeme ekleme hatası:", e);
+      }
     }
 
     async function loadMaterials() {
