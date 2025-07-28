@@ -52,18 +52,15 @@
     <button id="transferSubmit">📦 Transfer Et</button>
     <button onclick="closeAllModals()">❌ Kapat</button>
   </div>
-
+  <div id="stockSummaryModal" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); background:white; padding:20px; border-radius:10px; z-index:10001; width:400px; box-shadow:0 0 10px rgba(0,0,0,0.2);">
+    <h3>📊 Ambar Dağılımı</h3>
+    <div id="stockSummaryContent"></div>
+    <br>
+    <button onclick="document.getElementById('stockSummaryModal').style.display='none';overlay.style.display='none';">❌ Kapat</button>
+  </div>
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import {
-      getFirestore,
-      collection,
-      addDoc,
-      getDocs,
-      doc,
-      updateDoc,
-      Timestamp
-    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, Timestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
     const firebaseConfig = { apiKey: "AIzaSyD4MPM2fvkTXeOWG12g-wV_s3eG4SkBWS0", authDomain: "poleroyuncak.firebaseapp.com", projectId: "poleroyuncak", storageBucket: "poleroyuncak.firebasestorage.app", messagingSenderId: "473844630811", appId: "1:473844630811:web:bd89bb7d85c7b17ea03fbe", measurementId: "G-CV6WKBTJ3V" };
     const app = initializeApp(firebaseConfig);
@@ -73,14 +70,21 @@
     const productSelect = document.getElementById("transfer-product");
     const contextMenu = document.getElementById("context-menu");
     const overlay = document.getElementById("overlay");
+    const stockSummaryModal = document.getElementById("stockSummaryModal");
+    const stockSummaryContent = document.getElementById("stockSummaryContent");
     let allMaterials = [];
+    let currentContextStockCode = null;
 
     document.addEventListener("click", () => contextMenu.style.display = "none");
     document.addEventListener("contextmenu", (e) => {
-      e.preventDefault();
-      contextMenu.style.display = "block";
-      contextMenu.style.top = `${e.pageY}px`;
-      contextMenu.style.left = `${e.pageX}px`;
+      const target = e.target.closest('.material');
+      if (target) {
+        currentContextStockCode = target.dataset.stockCode;
+        contextMenu.style.display = "block";
+        contextMenu.style.top = `${e.pageY}px`;
+        contextMenu.style.left = `${e.pageX}px`;
+        e.preventDefault();
+      }
     });
 
     document.getElementById("addMaterialBtn").addEventListener("click", () => {
@@ -95,7 +99,7 @@
 
     document.getElementById("stockSummaryBtn").addEventListener("click", () => {
       contextMenu.style.display = "none";
-      showStockSummary();
+      showStockSummaryForSelected();
     });
 
     document.getElementById("saveMatBtn").addEventListener("click", saveMaterial);
@@ -117,6 +121,7 @@
     function closeAllModals() {
       document.getElementById("modal").style.display = "none";
       document.getElementById("transfer-modal").style.display = "none";
+      stockSummaryModal.style.display = "none";
       overlay.style.display = "none";
     }
 
@@ -132,106 +137,12 @@
       });
     }
 
-    async function showStockSummary() {
-      const map = {};
-      allMaterials.forEach(m => {
-        if (!map[m.stock_code]) map[m.stock_code] = [];
-        map[m.stock_code].push(`${m.warehouse}: ${m.stock_amount} ${m.unit}`);
-      });
-
-      const lines = Object.entries(map).map(([code, info]) => `${code} →\n${info.join("\n")}`);
-      alert("📊 Ambar Toplamları:\n\n" + lines.join("\n\n"));
-    }
-
-    async function loadTransferProducts() {
-      const snapshot = await getDocs(collection(db, "materials"));
-      productSelect.innerHTML = "";
-      snapshot.forEach(doc => {
-        const m = doc.data();
-        const option = document.createElement("option");
-        option.value = JSON.stringify({ id: doc.id, ...m });
-        option.textContent = `${m.name} (${m.stock_code})`;
-        productSelect.appendChild(option);
-      });
-    }
-
-    document.getElementById("productSearch").addEventListener("input", function () {
-      const filter = this.value.toLowerCase();
-      [...productSelect.options].forEach(opt => {
-        opt.style.display = opt.textContent.toLowerCase().includes(filter) ? "block" : "none";
-      });
-    });
-
-    productSelect.addEventListener("change", function () {
-      const selected = JSON.parse(this.value);
-      document.getElementById("transfer-from").value = selected.warehouse || "Tanımsız";
-    });
-
-    async function loadTransferWarehouses() {
-      const select = document.getElementById("transfer-to");
-      const snapshot = await getDocs(collection(db, "warehouses"));
-      select.innerHTML = "<option value=''>Giriş Ambarı Seç</option>";
-      snapshot.forEach(doc => {
-        const opt = document.createElement("option");
-        opt.value = doc.data().name;
-        opt.textContent = doc.data().name;
-        select.appendChild(opt);
-      });
-    }
-
-    async function executeTransfer() {
-      const selected = JSON.parse(productSelect.value);
-      const to = document.getElementById("transfer-to").value;
-      const from = document.getElementById("transfer-from").value;
-      const qty = parseFloat(document.getElementById("transfer-qty").value);
-      if (!selected || !to || !from || isNaN(qty) || qty <= 0) return alert("Tüm alanları doğru doldurun.");
-      if (qty > selected.stock_amount) return alert("Yeterli stok yok!");
-
-      await addDoc(collection(db, "transfers"), {
-        product_id: selected.id,
-        product_name: selected.name,
-        from,
-        to,
-        quantity: qty,
-        date: Timestamp.now()
-      });
-
-      const matRef = doc(db, "materials", selected.id);
-      await updateDoc(matRef, {
-        stock_amount: selected.stock_amount - qty,
-        warehouse: to,
-        updated_at: Timestamp.now()
-      });
-
-      alert("✅ Transfer kaydedildi ve ürün güncellendi");
-      closeAllModals();
-      loadMaterials();
-    }
-
-    async function saveMaterial() {
-      const data = {
-        name: document.getElementById("mat-name").value,
-        stock_code: document.getElementById("mat-code").value,
-        cycle_time: document.getElementById("mat-cycle").value,
-        warehouse: document.getElementById("mat-warehouse").value,
-        unit: document.getElementById("mat-unit").value,
-        stock_amount: parseFloat(document.getElementById("mat-qty").value),
-        cost: parseFloat(document.getElementById("mat-cost").value),
-        created_at: Timestamp.now(),
-        updated_at: Timestamp.now()
-      };
-      if (!data.name || !data.stock_code || !data.warehouse || isNaN(data.stock_amount)) {
-        alert("Lütfen gerekli alanları doldurun!");
-        return;
-      }
-      try {
-        await addDoc(collection(db, "materials"), data);
-        alert("✅ Malzeme başarıyla eklendi!");
-        closeAllModals();
-        loadMaterials();
-      } catch (e) {
-        console.error("Malzeme ekleme hatası:", e);
-      }
+    async function showStockSummaryForSelected() {
+      if (!currentContextStockCode) return alert("Bir ürün seçin.");
+      const materials = allMaterials.filter(m => m.stock_code === currentContextStockCode);
+      stockSummaryContent.innerHTML = materials.map(m => `<div>📦 ${m.warehouse} → ${m.stock_amount} ${m.unit}</div>`).join("");
+      stockSummaryModal.style.display = "block";
+      overlay.style.display = "block";
     }
 
     async function loadMaterials() {
@@ -247,6 +158,7 @@
       Object.values(grouped).forEach(m => {
         const div = document.createElement("div");
         div.className = "material";
+        div.dataset.stockCode = m.stock_code;
         div.textContent = `🔹 ${m.name} (${m.stock_code}) – ${m.stock_amount} ${m.unit}`;
         list.appendChild(div);
       });
