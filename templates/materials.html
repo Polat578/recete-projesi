@@ -100,7 +100,10 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
     import {
-      getFirestore, collection, addDoc, getDocs,
+      getFirestore,
+      collection,
+      addDoc,
+      getDocs,
       Timestamp
     } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
@@ -138,6 +141,16 @@
       document.getElementById("overlay").style.display = "none";
     }
 
+    function clearForm() {
+      document.getElementById("mat-name").value = "";
+      document.getElementById("mat-code").value = "";
+      document.getElementById("mat-cycle").value = "";
+      document.getElementById("mat-warehouse").value = "";
+      document.getElementById("mat-unit").value = "adet";
+      document.getElementById("mat-qty").value = "";
+      document.getElementById("mat-cost").value = "";
+    }
+
     async function saveMaterial() {
       const data = {
         name: document.getElementById("mat-name").value,
@@ -156,40 +169,61 @@
         return;
       }
 
-      await addDoc(collection(db, "materials"), data);
-      closeModal();
-      loadMaterials();
+      try {
+        await addDoc(collection(db, "materials"), data);  // 🔥 SADECE ana koleksiyon
+        alert("✅ Malzeme başarıyla eklendi!");
+        closeModal();
+        clearForm();
+        loadMaterials();
+      } catch (e) {
+        console.error("Malzeme ekleme hatası:", e);
+      }
     }
 
     async function loadMaterials() {
       list.innerHTML = "⏳ Yükleniyor...";
-      const snapshot = await getDocs(collection(db, "materials"));
-      list.innerHTML = "";
-      snapshot.forEach(doc => {
-        const m = doc.data();
-        const div = document.createElement("div");
-        div.className = "material";
-        div.textContent = `🔹 ${m.name} (${m.stock_code}) – ${m.stock_amount} ${m.unit}`;
-        list.appendChild(div);
-        list.appendChild(document.createElement("hr"));
-      });
+      try {
+        const snapshot = await getDocs(collection(db, "materials"));
+        list.innerHTML = "";
+        snapshot.forEach(doc => {
+          const m = doc.data();
+          const div = document.createElement("div");
+          div.className = "material";
+          div.textContent = `🔹 ${m.name} (${m.stock_code}) – ${m.stock_amount} ${m.unit}`;
+          list.appendChild(div);
+          list.appendChild(document.createElement("hr"));
+        });
+      } catch (err) {
+        console.error("Listeleme hatası:", err);
+        list.innerHTML = "❌ Liste yüklenemedi.";
+      }
     }
 
     async function loadWarehouses() {
       const select = document.getElementById("mat-warehouse");
-      const snapshot = await getDocs(collection(db, "warehouses"));
-      select.innerHTML = "<option value=''>Ambar Seç</option>";
-      snapshot.forEach(doc => {
-        const name = doc.data().name;
-        const opt = document.createElement("option");
-        opt.value = name;
-        opt.textContent = name;
-        select.appendChild(opt);
-      });
+      try {
+        const snapshot = await getDocs(collection(db, "warehouses"));
+        select.innerHTML = "<option value=''>Ambar Seç</option>";
+        snapshot.forEach(doc => {
+          const name = doc.data().name;
+          const opt = document.createElement("option");
+          opt.value = name;
+          opt.textContent = name;
+          select.appendChild(opt);
+        });
+      } catch (err) {
+        console.error("Ambarlar yüklenemedi:", err);
+      }
     }
 
+    // Başlat
     loadMaterials();
     loadWarehouses();
+
+    // Global erişim
+    window.openModal = openModal;
+    window.closeModal = closeModal;
+    window.saveMaterial = saveMaterial;
   </script>
 </body>
 </html>
