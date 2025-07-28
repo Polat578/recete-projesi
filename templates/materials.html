@@ -161,34 +161,63 @@
       });
     }
 
-    async function executeTransfer() {
-      const selected = JSON.parse(productSelect.value);
-      const to = document.getElementById("transfer-to").value;
-      const from = document.getElementById("transfer-from").value;
-      const qty = parseFloat(document.getElementById("transfer-qty").value);
-      if (!selected || !to || !from || isNaN(qty) || qty <= 0) return alert("Tüm alanları doğru doldurun.");
-      if (qty > selected.stock_amount) return alert("Yeterli stok yok!");
+   async function executeTransfer() {
+  const selected = JSON.parse(productSelect.value);
+  const to = document.getElementById("transfer-to").value;
+  const from = document.getElementById("transfer-from").value;
+  const qty = parseFloat(document.getElementById("transfer-qty").value);
+  if (!selected || !to || !from || isNaN(qty) || qty <= 0) return alert("Tüm alanları doğru doldurun.");
+  if (qty > selected.stock_amount) return alert("Yeterli stok yok!");
 
-      await addDoc(collection(db, "transfers"), {
-        product_id: selected.id,
-        product_name: selected.name,
-        from,
-        to,
-        quantity: qty,
-        date: Timestamp.now()
-      });
+  // 1. Transfer kaydı oluştur
+  await addDoc(collection(db, "transfers"), {
+    product_id: selected.id,
+    product_name: selected.name,
+    from,
+    to,
+    quantity: qty,
+    date: Timestamp.now()
+  });
 
-      const matRef = doc(db, "materials", selected.id);
-      await updateDoc(matRef, {
-        stock_amount: selected.stock_amount - qty,
-        warehouse: to,
-        updated_at: Timestamp.now()
-      });
+  // 2. Çıkış ambardaki stoktan düş
+  const matRef = doc(db, "materials", selected.id);
+  await updateDoc(matRef, {
+    stock_amount: selected.stock_amount - qty,
+    updated_at: Timestamp.now()
+  });
 
-      alert("✅ Transfer kaydedildi ve ürün güncellendi");
-      closeAllModals();
-      loadMaterials();
+  // 3. Giriş ambarda aynı ürün varsa ona stok ekle, yoksa oluştur
+  const snapshot = await getDocs(collection(db, "materials"));
+  let found = null;
+
+  snapshot.forEach(docSnap => {
+    const m = docSnap.data();
+    if (m.stock_code === selected.stock_code && m.warehouse === to) {
+      found = { id: docSnap.id, data: m };
     }
+  });
+
+  if (found) {
+    const newAmount = found.data.stock_amount + qty;
+    await updateDoc(doc(db, "materials", found.id), {
+      stock_amount: newAmount,
+      updated_at: Timestamp.now()
+    });
+  } else {
+    await addDoc(collection(db, "materials"), {
+      ...selected,
+      warehouse: to,
+      stock_amount: qty,
+      created_at: Timestamp.now(),
+      updated_at: Timestamp.now()
+    });
+  }
+
+  alert("✅ Transfer işlemi tamamlandı.");
+  closeAllModals();
+  loadMaterials();
+}
+
 
     async function saveMaterial() {
       const data = {
