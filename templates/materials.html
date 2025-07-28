@@ -6,7 +6,7 @@
   <style>
     body { font-family: sans-serif; padding: 20px; background: #f2f2f2; }
     h1 { text-align: center; }
-    .material { background: #fff; padding: 12px; margin-bottom: 10px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    .material { background: #fff; padding: 12px; margin-bottom: 10px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); cursor: context-menu; }
     #context-menu { position: absolute; z-index: 1000; display: none; background: white; border: 1px solid #ccc; border-radius: 5px; list-style: none; padding: 5px 0; }
     #context-menu li { padding: 8px 16px; cursor: pointer; }
     #context-menu li:hover { background: #eee; }
@@ -21,6 +21,7 @@
   <ul id="context-menu">
     <li id="addMaterialBtn">➕ Malzeme Ekle</li>
     <li id="transferBtn">🔄 Ambar Transferi</li>
+    <li id="stockSummaryBtn">📊 Ambar Toplamları</li>
   </ul>
   <div id="overlay" onclick="closeAllModals()"></div>
   <div id="modal">
@@ -72,6 +73,7 @@
     const productSelect = document.getElementById("transfer-product");
     const contextMenu = document.getElementById("context-menu");
     const overlay = document.getElementById("overlay");
+    let allMaterials = [];
 
     document.addEventListener("click", () => contextMenu.style.display = "none");
     document.addEventListener("contextmenu", (e) => {
@@ -89,6 +91,11 @@
     document.getElementById("transferBtn").addEventListener("click", () => {
       contextMenu.style.display = "none";
       openTransferModal();
+    });
+
+    document.getElementById("stockSummaryBtn").addEventListener("click", () => {
+      contextMenu.style.display = "none";
+      showStockSummary();
     });
 
     document.getElementById("saveMatBtn").addEventListener("click", saveMaterial);
@@ -123,6 +130,17 @@
         opt.textContent = doc.data().name;
         select.appendChild(opt);
       });
+    }
+
+    async function showStockSummary() {
+      const map = {};
+      allMaterials.forEach(m => {
+        if (!map[m.stock_code]) map[m.stock_code] = [];
+        map[m.stock_code].push(`${m.warehouse}: ${m.stock_amount} ${m.unit}`);
+      });
+
+      const lines = Object.entries(map).map(([code, info]) => `${code} →\n${info.join("\n")}`);
+      alert("📊 Ambar Toplamları:\n\n" + lines.join("\n\n"));
     }
 
     async function loadTransferProducts() {
@@ -161,63 +179,34 @@
       });
     }
 
-   async function executeTransfer() {
-  const selected = JSON.parse(productSelect.value);
-  const to = document.getElementById("transfer-to").value;
-  const from = document.getElementById("transfer-from").value;
-  const qty = parseFloat(document.getElementById("transfer-qty").value);
-  if (!selected || !to || !from || isNaN(qty) || qty <= 0) return alert("Tüm alanları doğru doldurun.");
-  if (qty > selected.stock_amount) return alert("Yeterli stok yok!");
+    async function executeTransfer() {
+      const selected = JSON.parse(productSelect.value);
+      const to = document.getElementById("transfer-to").value;
+      const from = document.getElementById("transfer-from").value;
+      const qty = parseFloat(document.getElementById("transfer-qty").value);
+      if (!selected || !to || !from || isNaN(qty) || qty <= 0) return alert("Tüm alanları doğru doldurun.");
+      if (qty > selected.stock_amount) return alert("Yeterli stok yok!");
 
-  // 1. Transfer kaydı oluştur
-  await addDoc(collection(db, "transfers"), {
-    product_id: selected.id,
-    product_name: selected.name,
-    from,
-    to,
-    quantity: qty,
-    date: Timestamp.now()
-  });
+      await addDoc(collection(db, "transfers"), {
+        product_id: selected.id,
+        product_name: selected.name,
+        from,
+        to,
+        quantity: qty,
+        date: Timestamp.now()
+      });
 
-  // 2. Çıkış ambardaki stoktan düş
-  const matRef = doc(db, "materials", selected.id);
-  await updateDoc(matRef, {
-    stock_amount: selected.stock_amount - qty,
-    updated_at: Timestamp.now()
-  });
+      const matRef = doc(db, "materials", selected.id);
+      await updateDoc(matRef, {
+        stock_amount: selected.stock_amount - qty,
+        warehouse: to,
+        updated_at: Timestamp.now()
+      });
 
-  // 3. Giriş ambarda aynı ürün varsa ona stok ekle, yoksa oluştur
-  const snapshot = await getDocs(collection(db, "materials"));
-  let found = null;
-
-  snapshot.forEach(docSnap => {
-    const m = docSnap.data();
-    if (m.stock_code === selected.stock_code && m.warehouse === to) {
-      found = { id: docSnap.id, data: m };
+      alert("✅ Transfer kaydedildi ve ürün güncellendi");
+      closeAllModals();
+      loadMaterials();
     }
-  });
-
-  if (found) {
-    const newAmount = found.data.stock_amount + qty;
-    await updateDoc(doc(db, "materials", found.id), {
-      stock_amount: newAmount,
-      updated_at: Timestamp.now()
-    });
-  } else {
-    await addDoc(collection(db, "materials"), {
-      ...selected,
-      warehouse: to,
-      stock_amount: qty,
-      created_at: Timestamp.now(),
-      updated_at: Timestamp.now()
-    });
-  }
-
-  alert("✅ Transfer işlemi tamamlandı.");
-  closeAllModals();
-  loadMaterials();
-}
-
 
     async function saveMaterial() {
       const data = {
@@ -249,8 +238,13 @@
       list.innerHTML = "⏳ Yükleniyor...";
       const snapshot = await getDocs(collection(db, "materials"));
       list.innerHTML = "";
-      snapshot.forEach(doc => {
-        const m = doc.data();
+      allMaterials = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      const grouped = {};
+      allMaterials.forEach(m => {
+        if (!grouped[m.stock_code]) grouped[m.stock_code] = { ...m };
+        else grouped[m.stock_code].stock_amount += m.stock_amount;
+      });
+      Object.values(grouped).forEach(m => {
         const div = document.createElement("div");
         div.className = "material";
         div.textContent = `🔹 ${m.name} (${m.stock_code}) – ${m.stock_amount} ${m.unit}`;
