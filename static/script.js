@@ -4,10 +4,11 @@ import {
   getFirestore,
   collection,
   addDoc,
-  getDocs
+  getDocs,
+  Timestamp
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-// ✅ Firebase yapılandırması (senin config)
+// ✅ Firebase yapılandırması
 const firebaseConfig = {
   apiKey: "AIzaSyD4MPM2fvkTXeOWG12g-wV_s3eG4SkBWS0",
   authDomain: "poleroyuncak.firebaseapp.com",
@@ -22,73 +23,119 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// HTML elementlerini al
-const nameInput = document.getElementById("warehouseName");
-const addBtn = document.getElementById("addWarehouseBtn");
-const listEl = document.getElementById("warehouseList");
+// HTML referansları
+const list = document.getElementById("materialList");
+const overlay = document.getElementById("overlay");
 
-// 🔁 Listeleme fonksiyonu
-async function getWarehouses() {
-  listEl.innerHTML = "";
-  try {
-    const snapshot = await getDocs(collection(db, "warehouses"));
-    snapshot.forEach((doc) => {
-      const li = document.createElement("li");
-      li.textContent = doc.data().name;
-      listEl.appendChild(li);
-    });
-  } catch (e) {
-    console.error("Listeleme hatası:", e);
-  }
+// Modal kontrolü
+function openModal() {
+  document.getElementById("modal").style.display = "block";
+  overlay.style.display = "block";
 }
 
-// ➕ Ekleme fonksiyonu
-async function addWarehouse() {
-  const name = nameInput.value.trim();
-  if (!name) {
-    alert("Ambar adı boş olamaz!");
-    return;
-  }
-
-  try {
-    await addDoc(collection(db, "warehouses"), { name });
-    nameInput.value = "";
-    getWarehouses();
-  } catch (e) {
-    console.error("Ekleme hatası:", e);
-  }
+function closeModal() {
+  document.getElementById("modal").style.display = "none";
+  overlay.style.display = "none";
 }
 
-// Başlat
-addBtn.addEventListener("click", addWarehouse);
-getWarehouses();
-// 📦 Malzeme Ekleme Fonksiyonu
+// 📦 Malzeme ekle
 async function addMaterial() {
   const name = document.getElementById("mat-name").value.trim();
   const code = document.getElementById("mat-code").value.trim();
   const cycle = document.getElementById("mat-cycle").value.trim();
+  const warehouse = document.getElementById("mat-warehouse").value.trim();
+  const unit = document.getElementById("mat-unit").value;
+  const qty = parseFloat(document.getElementById("mat-qty").value);
+  const cost = parseFloat(document.getElementById("mat-cost").value);
 
-  if (!name || !code || !cycle) {
-    alert("Lütfen tüm alanları doldurun!");
+  if (!name || !code || !warehouse || isNaN(qty)) {
+    alert("Lütfen gerekli alanları eksiksiz doldurun.");
     return;
   }
 
+  const data = {
+    name,
+    stock_code: code,
+    cycle_time: cycle,
+    warehouse,
+    unit,
+    stock_amount: qty,
+    cost,
+    created_at: Timestamp.now(),
+    updated_at: Timestamp.now()
+  };
+
   try {
-    await addDoc(collection(db, "materials"), {
-      name,
-      code,
-      cycleTime: cycle
-    });
-
-    alert("Malzeme başarıyla eklendi!");
+    await addDoc(collection(db, "materials"), data);
+    alert("✅ Malzeme eklendi.");
     closeModal();
-    document.getElementById("mat-name").value = "";
-    document.getElementById("mat-code").value = "";
-    document.getElementById("mat-cycle").value = "";
-
-    // Gerekirse buraya listeyi yenile fonksiyonu da eklenebilir
-  } catch (e) {
-    console.error("Malzeme eklenemedi:", e);
+    clearForm();
+    loadMaterials();
+  } catch (err) {
+    console.error("Malzeme ekleme hatası:", err);
   }
 }
 
+// 🔁 Malzeme listele
+async function loadMaterials() {
+  list.innerHTML = "⏳ Yükleniyor...";
+  try {
+    const snapshot = await getDocs(collection(db, "materials"));
+    list.innerHTML = "";
+    snapshot.forEach(doc => {
+      const m = doc.data();
+      const div = document.createElement("div");
+      div.className = "material";
+      div.textContent = `🔹 ${m.name} (${m.stock_code}) – ${m.stock_amount} ${m.unit}`;
+      list.appendChild(div);
+      list.appendChild(document.createElement("hr"));
+    });
+  } catch (err) {
+    console.error("Listeleme hatası:", err);
+    list.innerHTML = "❌ Listeleme başarısız.";
+  }
+}
+
+// 🧼 Formu temizle
+function clearForm() {
+  document.getElementById("mat-name").value = "";
+  document.getElementById("mat-code").value = "";
+  document.getElementById("mat-cycle").value = "";
+  document.getElementById("mat-warehouse").value = "";
+  document.getElementById("mat-unit").value = "adet";
+  document.getElementById("mat-qty").value = "";
+  document.getElementById("mat-cost").value = "";
+}
+
+// 🏭 Ambarları yükle (dropdownda göster)
+async function loadWarehouses() {
+  const select = document.getElementById("mat-warehouse");
+  const snapshot = await getDocs(collection(db, "warehouses"));
+  select.innerHTML = "<option value=''>Ambar Seç</option>";
+  snapshot.forEach(doc => {
+    const name = doc.data().name;
+    const opt = document.createElement("option");
+    opt.value = name;
+    opt.textContent = name;
+    select.appendChild(opt);
+  });
+}
+
+// Sağ tık menüsü
+const menu = document.getElementById("context-menu");
+document.addEventListener("click", () => menu.style.display = "none");
+document.addEventListener("contextmenu", (e) => {
+  e.preventDefault();
+  menu.style.display = "block";
+  menu.style.top = `${e.pageY}px`;
+  menu.style.left = `${e.pageX}px`;
+});
+
+// Başlangıç
+loadMaterials();
+loadWarehouses();
+
+// Global erişim için fonksiyonları pencerede tut
+window.openModal = openModal;
+window.closeModal = closeModal;
+window.saveMaterial = addMaterial;
