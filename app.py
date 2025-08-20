@@ -17,3 +17,6 @@ def warehouses():
 @app.route("/movements")
 def movements():
     return render_template("movements.html")
+
+if __name__ == "__main__":
+    app.run(debug=True)
