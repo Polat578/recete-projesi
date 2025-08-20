@@ -2,46 +2,91 @@
 <html lang="tr">
 <head>
   <meta charset="UTF-8">
-  <title>Üretim Takip Paneli</title>
+  <title>📊 Stok & Malzeme Takip</title>
   <style>
-    body { font-family: Arial; background: #f2f2f2; margin: 0; }
-    header { background-color: #3b82f6; color: white; padding: 20px; text-align: center; font-size: 1.5em; }
-    .dashboard {
-      display: flex;
-      justify-content: center;
-      flex-wrap: wrap;
-      gap: 20px;
-      padding: 40px;
-    }
-    .widget {
-      width: 250px;
-      height: 120px;
-      background: white;
-      border-radius: 12px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 1.2rem;
-      font-weight: bold;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-      cursor: pointer;
-      text-decoration: none;
-      color: black;
-      transition: transform 0.2s;
-    }
-    .widget:hover {
-      transform: scale(1.05);
-      background-color: #f0f8ff;
-    }
+    body { margin:0; font-family:Arial, sans-serif; background:#f5f6fa; color:#2c3e50; }
+    header { background:#2c3e50; color:white; padding:15px 20px; font-size:20px; font-weight:bold; }
+    #sidebar { width:220px; background:#34495e; position:fixed; top:50px; bottom:0; left:0; color:white; padding-top:20px; }
+    #sidebar a { display:block; color:white; padding:12px 20px; text-decoration:none; cursor:pointer; }
+    #sidebar a:hover { background:#3d566e; }
+    #content { margin-left:240px; padding:20px; }
+    h1 { margin-top:0; }
+    .material-card { background:white; padding:15px; margin-bottom:12px; border-radius:8px;
+      box-shadow:0 1px 3px rgba(0,0,0,0.1); display:flex; justify-content:space-between; align-items:center; }
+    .material-card span { font-weight:bold; }
   </style>
 </head>
 <body>
-  <header>Üretim Takip Paneli</header>
-  <div class="dashboard">
-    <a class="widget" href="/materials">📦 Malzemelerim</a>
-    <a class="widget" href="/recipes">📋 Reçetelerim</a>
-    <a class="widget" href="/orders">🏭 Üretim Emirlerim</a>
-    <a class="widget" href="/warehouses">🏢 Ambarlar</a>
+  <header>📦 Logo Tarzı Muhasebe / Stok Programı</header>
+  <div id="sidebar">
+    <a data-page="home">🏠 Anasayfa</a>
+    <a data-page="materials">📦 Malzemeler</a>
+    <a data-page="warehouses">🏭 Depolar</a>
+    <a data-page="transfers">🔄 Transferler</a>
+    <a data-page="settings">⚙️ Ayarlar</a>
   </div>
+  <div id="content">
+    <h1>🏠 Anasayfa</h1>
+    <p>Hoş geldiniz! Soldaki menüden istediğiniz bölümü seçebilirsiniz.</p>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyD4MPM2fvkTXeOWG12g-wV_s3eG4SkBWS0",
+      authDomain: "poleroyuncak.firebaseapp.com",
+      projectId: "poleroyuncak",
+      storageBucket: "poleroyuncak.firebasestorage.app",
+      messagingSenderId: "473844630811",
+      appId: "1:473844630811:web:bd89bb7d85c7b17ea03fbe",
+      measurementId: "G-CV6WKBTJ3V"
+    };
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    // sayfa içeriğini değiştirme fonksiyonu
+    async function showPage(page) {
+      const content = document.getElementById("content");
+      if (page === "home") {
+        content.innerHTML = "<h1>🏠 Anasayfa</h1><p>Hoş geldiniz! Soldaki menüden istediğiniz bölümü seçebilirsiniz.</p>";
+      }
+      else if (page === "materials") {
+        content.innerHTML = "<h1>📦 Malzeme Listesi</h1><div id='materialList'>⏳ Yükleniyor...</div>";
+        const list = document.getElementById("materialList");
+        const snapshot = await getDocs(collection(db, "materials"));
+        list.innerHTML = "";
+        snapshot.forEach(doc => {
+          const m = doc.data();
+          const div = document.createElement("div");
+          div.className = "material-card";
+          div.innerHTML = `<span>${m.name} (${m.stock_code})</span> 
+                           <span>${m.stock_amount} ${m.unit}</span>`;
+          list.appendChild(div);
+        });
+      }
+      else if (page === "warehouses") {
+        content.innerHTML = "<h1>🏭 Depolar</h1><p>Depo listesi burada olacak.</p>";
+      }
+      else if (page === "transfers") {
+        content.innerHTML = "<h1>🔄 Transferler</h1><p>Transfer işlemleri burada olacak.</p>";
+      }
+      else if (page === "settings") {
+        content.innerHTML = "<h1>⚙️ Ayarlar</h1><p>Sistem ayarları burada olacak.</p>";
+      }
+    }
+
+    // sidebar tıklamalarını dinle
+    document.querySelectorAll("#sidebar a").forEach(link => {
+      link.addEventListener("click", () => {
+        const page = link.dataset.page;
+        showPage(page);
+      });
+    });
+
+    // varsayılan olarak anasayfa
+    showPage("home");
+  </script>
 </body>
 </html>
