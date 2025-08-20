@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head><meta charset="UTF-8"><title>🔄 Hareketler</title></head>
+<body>
+  <h1>🔄 Stok Hareketleri</h1>
+  <table border="1" cellpadding="6"><thead>
+    <tr><th>Malzeme</th><th>Kaynak</th><th>Hedef</th><th>Miktar</th><th>Tür</th><th>Tarih</th></tr>
+  </thead><tbody id="moveList"></tbody></table>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    const app = initializeApp({ projectId:"poleroyuncak" });
+    const db = getFirestore(app);
+
+    async function loadMoves(){
+      const body=document.getElementById("moveList");
+      const snap=await getDocs(collection(db,"stock_movements"));
+      body.innerHTML="";
+      snap.forEach(d=>{
+        const m=d.data();
+        body.innerHTML+=`<tr><td>${m.material_id}</td><td>${m.from_wh||""}</td><td>${m.to_wh||""}</td><td>${m.qty}</td><td>${m.type}</td><td>${m.date?.toDate?.()||""}</td></tr>`;
+      });
+    }
+    loadMoves();
+  </script>
+</body>
+</html>
