@@ -14,6 +14,12 @@
     .material-card { background:white; padding:15px; margin-bottom:12px; border-radius:8px;
       box-shadow:0 1px 3px rgba(0,0,0,0.1); display:flex; justify-content:space-between; align-items:center; }
     .material-card span { font-weight:bold; }
+    .actions button { margin-left:5px; }
+    /* Modal */
+    #overlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); }
+    #modal { display:none; position:fixed; top:50%; left:50%; transform:translate(-50%,-50%);
+      background:white; padding:20px; border-radius:8px; box-shadow:0 0 15px rgba(0,0,0,0.3); width:300px; }
+    #modal input { width:100%; margin:5px 0; padding:8px; }
   </style>
 </head>
 <body>
@@ -25,14 +31,23 @@
     <a data-page="transfers">🔄 Transferler</a>
     <a data-page="settings">⚙️ Ayarlar</a>
   </div>
-  <div id="content">
-    <h1>🏠 Anasayfa</h1>
-    <p>Hoş geldiniz! Soldaki menüden istediğiniz bölümü seçebilirsiniz.</p>
+  <div id="content"></div>
+
+  <!-- Modal for Add/Edit Material -->
+  <div id="overlay"></div>
+  <div id="modal">
+    <h3 id="modal-title">Yeni Malzeme</h3>
+    <input id="mat-name" placeholder="Ad">
+    <input id="mat-code" placeholder="Kod">
+    <input id="mat-unit" placeholder="Birim (adet, kg...)">
+    <input id="mat-qty" type="number" placeholder="Miktar">
+    <button id="saveMatBtn">Kaydet</button>
+    <button onclick="closeModal()">Kapat</button>
   </div>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { getFirestore, collection, getDocs, addDoc, doc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyD4MPM2fvkTXeOWG12g-wV_s3eG4SkBWS0",
@@ -46,47 +61,95 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    // sayfa içeriğini değiştirme fonksiyonu
-    async function showPage(page) {
-      const content = document.getElementById("content");
-      if (page === "home") {
-        content.innerHTML = "<h1>🏠 Anasayfa</h1><p>Hoş geldiniz! Soldaki menüden istediğiniz bölümü seçebilirsiniz.</p>";
+    let editingId = null; // düzenleme için id saklama
+
+    function openModal(edit=false, material={}) {
+      document.getElementById("overlay").style.display="block";
+      document.getElementById("modal").style.display="block";
+      document.getElementById("modal-title").textContent = edit ? "Malzeme Düzenle" : "Yeni Malzeme";
+      document.getElementById("mat-name").value = material.name || "";
+      document.getElementById("mat-code").value = material.stock_code || "";
+      document.getElementById("mat-unit").value = material.unit || "";
+      document.getElementById("mat-qty").value = material.stock_amount || "";
+      editingId = edit ? material.id : null;
+    }
+    function closeModal(){
+      document.getElementById("overlay").style.display="none";
+      document.getElementById("modal").style.display="none";
+    }
+
+    async function saveMaterial(){
+      const name=document.getElementById("mat-name").value;
+      const code=document.getElementById("mat-code").value;
+      const unit=document.getElementById("mat-unit").value;
+      const qty=Number(document.getElementById("mat-qty").value);
+      if(editingId){
+        await updateDoc(doc(db,"materials",editingId),{name,stock_code:code,unit,stock_amount:qty});
+      }else{
+        await addDoc(collection(db,"materials"),{name,stock_code:code,unit,stock_amount:qty});
       }
-      else if (page === "materials") {
-        content.innerHTML = "<h1>📦 Malzeme Listesi</h1><div id='materialList'>⏳ Yükleniyor...</div>";
-        const list = document.getElementById("materialList");
-        const snapshot = await getDocs(collection(db, "materials"));
-        list.innerHTML = "";
-        snapshot.forEach(doc => {
-          const m = doc.data();
-          const div = document.createElement("div");
-          div.className = "material-card";
-          div.innerHTML = `<span>${m.name} (${m.stock_code})</span> 
-                           <span>${m.stock_amount} ${m.unit}</span>`;
-          list.appendChild(div);
-        });
-      }
-      else if (page === "warehouses") {
-        content.innerHTML = "<h1>🏭 Depolar</h1><p>Depo listesi burada olacak.</p>";
-      }
-      else if (page === "transfers") {
-        content.innerHTML = "<h1>🔄 Transferler</h1><p>Transfer işlemleri burada olacak.</p>";
-      }
-      else if (page === "settings") {
-        content.innerHTML = "<h1>⚙️ Ayarlar</h1><p>Sistem ayarları burada olacak.</p>";
+      closeModal(); showPage("materials");
+    }
+
+    async function deleteMaterial(id){
+      if(confirm("Silmek istediğine emin misin?")){
+        await deleteDoc(doc(db,"materials",id));
+        showPage("materials");
       }
     }
 
-    // sidebar tıklamalarını dinle
-    document.querySelectorAll("#sidebar a").forEach(link => {
-      link.addEventListener("click", () => {
-        const page = link.dataset.page;
-        showPage(page);
-      });
-    });
+    async function showPage(page){
+      const content=document.getElementById("content");
+      if(page==="home"){
+        content.innerHTML="<h1>🏠 Anasayfa</h1><p>Hoş geldiniz!</p>";
+      }
+      else if(page==="materials"){
+        content.innerHTML="<h1>📦 Malzeme Listesi</h1><button onclick='openModal()'>➕ Yeni Malzeme</button><div id='materialList'>⏳</div>";
+        const list=document.getElementById("materialList");
+        const snapshot=await getDocs(collection(db,"materials"));
+        list.innerHTML="";
+        snapshot.forEach(docSnap=>{
+          const m=docSnap.data();
+          const div=document.createElement("div");
+          div.className="material-card";
+          div.innerHTML=`<span>${m.name} (${m.stock_code})</span>
+                          <span>${m.stock_amount} ${m.unit}</span>
+                          <span class='actions'>
+                            <button onclick='openModal(true,{id:"${docSnap.id}",...${JSON.stringify(m)}})'>✏️</button>
+                            <button onclick='deleteMaterial("${docSnap.id}")'>🗑️</button>
+                          </span>`;
+          list.appendChild(div);
+        });
+      }
+      else if(page==="warehouses"){
+        content.innerHTML="<h1>🏭 Depolar</h1><div id='warehouseList'>⏳</div>";
+        const list=document.getElementById("warehouseList");
+        const snapshot=await getDocs(collection(db,"warehouses"));
+        list.innerHTML="";
+        snapshot.forEach(docSnap=>{
+          const w=docSnap.data();
+          const div=document.createElement("div");
+          div.className="material-card";
+          div.innerHTML=`<span>${w.name}</span>`;
+          list.appendChild(div);
+        });
+      }
+      else if(page==="transfers"){
+        content.innerHTML="<h1>🔄 Transferler</h1><p>Yakında...</p>";
+      }
+      else if(page==="settings"){
+        content.innerHTML="<h1>⚙️ Ayarlar</h1><p>Yakında...</p>";
+      }
+    }
 
-    // varsayılan olarak anasayfa
-    showPage("home");
+    // event listeners
+    document.querySelectorAll("#sidebar a").forEach(link=>{
+      link.addEventListener("click",()=>showPage(link.dataset.page));
+    });
+    document.getElementById("saveMatBtn").addEventListener("click",saveMaterial);
+
+    showPage("home"); // başlangıç
+    window.openModal=openModal; window.deleteMaterial=deleteMaterial;
   </script>
 </body>
 </html>
