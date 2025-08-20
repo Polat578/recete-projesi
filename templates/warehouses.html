@@ -1,229 +1,25 @@
 <!DOCTYPE html>
 <html lang="tr">
-<head>
-  <meta charset="UTF-8">
-  <title>Ambarlar</title>
-  <style>
-    body {
-      font-family: 'Segoe UI', sans-serif;
-      background: #f4f6f8;
-      padding: 20px;
-    }
-
-    h2 {
-      margin-bottom: 20px;
-      color: #333;
-    }
-
-    .container {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 20px;
-    }
-
-    .card {
-      background: white;
-      padding: 20px;
-      border-radius: 10px;
-      width: 300px;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.06);
-      position: relative;
-      cursor: pointer;
-    }
-
-    .card:hover {
-      transform: scale(1.02);
-    }
-
-    .card-title {
-      font-size: 18px;
-      font-weight: bold;
-      color: #3b82f6;
-      margin-bottom: 8px;
-    }
-
-    .card-info {
-      font-size: 14px;
-      color: #555;
-    }
-
-    .materials {
-      margin-top: 10px;
-      font-size: 14px;
-      color: #333;
-      border-top: 1px solid #ddd;
-      padding-top: 8px;
-    }
-
-    .context-menu {
-      position: absolute;
-      background: white;
-      border: 1px solid #ccc;
-      border-radius: 6px;
-      list-style: none;
-      padding: 5px 0;
-      margin: 0;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.15);
-      z-index: 999;
-    }
-
-    .context-menu li {
-      padding: 8px 16px;
-      cursor: pointer;
-    }
-
-    .context-menu li:hover {
-      background-color: #f0f0f0;
-    }
-  </style>
-</head>
+<head><meta charset="UTF-8"><title>🏭 Depolar</title></head>
 <body>
-  <h2>📦 Ambarlar</h2>
-  <div class="container" id="warehouseList"></div>
-  <ul id="contextMenu" class="context-menu" style="display:none;"></ul>
-
+  <h1>🏭 Depolar</h1>
+  <div id="warehouseList"></div>
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import {
-      getFirestore, collection, getDocs, addDoc, updateDoc, doc, query, where
-    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyD4MPM2fvkTXeOWG12g-wV_s3eG4SkBWS0",
-      authDomain: "poleroyuncak.firebaseapp.com",
-      projectId: "poleroyuncak",
-      storageBucket: "poleroyuncak.firebasestorage.app",
-      messagingSenderId: "473844630811",
-      appId: "1:473844630811:web:bd89bb7d85c7b17ea03fbe",
-      measurementId: "G-CV6WKBTJ3V"
-    };
-
-    const app = initializeApp(firebaseConfig);
+    const app = initializeApp({ projectId:"poleroyuncak" });
     const db = getFirestore(app);
 
-    const listEl = document.getElementById("warehouseList");
-    const contextMenu = document.getElementById("contextMenu");
-    let rightClickedCard = null;
-
-    async function loadWarehouses() {
-      listEl.innerHTML = "";
-      const snapshot = await getDocs(collection(db, "warehouses"));
-      snapshot.forEach(docSnap => {
-        const w = docSnap.data();
-        const id = docSnap.id;
-
-        const card = document.createElement("div");
-        card.className = "card";
-        card.dataset.name = w.name;
-        card.dataset.id = id;
-        card.innerHTML = `
-          <div class="card-title">${w.name}</div>
-          <div class="card-info">
-            📍 ${w.address || "-"}<br>
-            👤 ${w.person || "-"}<br>
-            📞 ${w.phone || "-"}
-          </div>
-          <div class="materials" id="materials-${id}" style="display:none;"></div>
-        `;
-
-        card.addEventListener("click", () => toggleMaterials(w.name, id));
-        card.addEventListener("contextmenu", e => {
-          e.preventDefault();
-          rightClickedCard = { id, data: w };
-          showContextMenu(e.pageX, e.pageY, true);
-        });
-
-        listEl.appendChild(card);
+    async function loadWarehouses(){
+      const list=document.getElementById("warehouseList");
+      const snap=await getDocs(collection(db,"warehouses"));
+      list.innerHTML="";
+      snap.forEach(d=>{
+        const w=d.data();
+        list.innerHTML += `<div>📦 ${w.name} (${w.location||""})</div>`;
       });
     }
-
-    async function toggleMaterials(warehouseName, warehouseId) {
-      const matDiv = document.getElementById(`materials-${warehouseId}`);
-      if (!matDiv) return;
-
-      if (matDiv.style.display === "block") {
-        matDiv.style.display = "none";
-        matDiv.innerHTML = "";
-        return;
-      }
-
-      matDiv.style.display = "block";
-      matDiv.innerHTML = "⏳ Malzemeler yükleniyor...";
-
-      const q = query(collection(db, "materials"), where("warehouse", "==", warehouseName));
-      const snapshot = await getDocs(q);
-
-      if (snapshot.empty) {
-        matDiv.innerHTML = "<em>Bu ambara ait malzeme yok.</em>";
-        return;
-      }
-
-      matDiv.innerHTML = "";
-      snapshot.forEach(docSnap => {
-        const m = docSnap.data();
-        const div = document.createElement("div");
-        div.textContent = `🔹 ${m.name} (${m.unit}) — ${m.stock_amount}`;
-        matDiv.appendChild(div);
-      });
-    }
-
-    function showContextMenu(x, y, isOnCard) {
-      contextMenu.innerHTML = "";
-      if (isOnCard && rightClickedCard) {
-        const edit = document.createElement("li");
-        edit.textContent = "Ambarı Düzenle";
-        edit.onclick = () => editWarehouse(rightClickedCard);
-        contextMenu.appendChild(edit);
-      } else {
-        const add = document.createElement("li");
-        add.textContent = "Ambar Ekle";
-        add.onclick = addWarehouse;
-        contextMenu.appendChild(add);
-      }
-
-      contextMenu.style.top = `${y}px`;
-      contextMenu.style.left = `${x}px`;
-      contextMenu.style.display = "block";
-    }
-
-    document.addEventListener("click", () => {
-      contextMenu.style.display = "none";
-      rightClickedCard = null;
-    });
-
-    document.body.addEventListener("contextmenu", (e) => {
-      if (!e.target.closest(".card")) {
-        rightClickedCard = null;
-        e.preventDefault();
-        showContextMenu(e.pageX, e.pageY, false);
-      }
-    });
-
-    async function addWarehouse() {
-      const name = prompt("Ambar Adı:");
-      const address = prompt("Açık Adres:");
-      const person = prompt("İlgili Personel:");
-      const phone = prompt("Telefon:");
-      if (!name) return;
-
-      await addDoc(collection(db, "warehouses"), { name, address, person, phone });
-      loadWarehouses();
-    }
-
-    async function editWarehouse(obj) {
-      const name = prompt("Ambar Adı:", obj.data.name);
-      const address = prompt("Açık Adres:", obj.data.address);
-      const person = prompt("Personel:", obj.data.person);
-      const phone = prompt("Telefon:", obj.data.phone);
-      if (!name) return;
-
-      await updateDoc(doc(db, "warehouses", obj.id), {
-        name, address, person, phone
-      });
-
-      loadWarehouses();
-    }
-
     loadWarehouses();
   </script>
 </body>
